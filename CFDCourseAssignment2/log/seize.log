@@ -1,0 +1,72 @@
+********************************************** 
+Final residual =9.9906e-06
+Loop times = 1670
+
+Mx= 100	My= 100
+
+Wall time = 4.58935 s
+CPU time= 4.58936e+06 s
+********************************************** 
+Final residual =9.99089e-06
+Loop times = 3397
+
+Mx= 100	My= 200
+
+Wall time = 15.3069 s
+CPU time= 1.5307e+07 s
+********************************************** 
+Final residual =9.99809e-06
+Loop times = 5446
+
+Mx= 100	My= 300
+
+Wall time = 28.9463 s
+CPU time= 2.89463e+07 s
+********************************************** 
+Final residual =9.99823e-06
+Loop times = 3377
+
+Mx= 200	My= 100
+
+Wall time = 16.6037 s
+CPU time= 1.66037e+07 s
+********************************************** 
+Final residual =9.99801e-06
+Loop times = 4413
+
+Mx= 200	My= 200
+
+Wall time = 40.0099 s
+CPU time= 4.00099e+07 s
+********************************************** 
+Final residual =9.99962e-06
+Loop times = 6165
+
+Mx= 200	My= 300
+
+Wall time = 67.443 s
+CPU time= 6.7443e+07 s
+********************************************** 
+Final residual =9.99927e-06
+Loop times = 5425
+
+Mx= 300	My= 100
+
+Wall time = 37.2125 s
+CPU time= 3.72125e+07 s
+********************************************** 
+Final residual =9.99712e-06
+Loop times = 6130
+
+Mx= 300	My= 200
+
+Wall time = 71.9792 s
+CPU time= 7.19792e+07 s
+********************************************** 
+Final residual =9.99864e-06
+Loop times = 7115
+
+Mx= 300	My= 300
+
+Wall time = 82.6659 s
+CPU time= 8.26659e+07 s
