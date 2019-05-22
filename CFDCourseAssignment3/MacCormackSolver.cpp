@@ -12,11 +12,12 @@ void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
     double U_half[3][maxSpace+1];
     double F_half[3][maxSpace+1];
 
+
     //开关
     for ( i = 1; i < maxSpace; i++)
     {
-        theta = fabs( ( fabs(U[0][i + 1] -U[0][i]) - fabs(U[0][i] -U[0][i-1]) )
-                 /    ( fabs(U[0][i + 1] -U[0][i]) + fabs(U[0][i] -U[0][i-1]) ) ) ;
+        theta = fabs( ( fabs(U[0][i + 1] -U[0][i]) - fabs(U[0][i] -U[0][i-1])        )   
+                 /    ( fabs(U[0][i + 1] -U[0][i]) + fabs(U[0][i] -U[0][i-1]) +1e-100) ) ;
 
     }
 
@@ -25,11 +26,11 @@ void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
     {
         for (i = 0; i <= maxSpace; i++)
         {
-            U_half[k][i] = U[k][i] + 0.5 * eta * theta * (U[k][i + 1] - 2 * U[k][i] + U[k][i - 1]);
+            U[k][i] = U[k][i] + 0.5 * eta * theta * (U[k][i + 1] - 2 * U[k][i] + U[k][i - 1]);
         }
     }
 
-//    UToF(U, F_half);
+    UToF(U, F);
 
     //预报
     for (k = 0; k < 3; k++)

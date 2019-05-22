@@ -9,11 +9,11 @@ void print( double U[][maxSpace+1])
     cout<<"\nprint the rho, p, u, in the data/*.dat respectively"<<endl;
     for (int i = 0; i <= maxSpace; i++)
     {
-        foutRho<<U[0][i]<<endl;
-        foutU<<U[1][i]/U[0][i]<<endl;
+        foutRho<<i*dx<<'\t'<<U[0][i]<<endl;
+        foutU<<i*dx<<'\t'<<U[1][i]/U[0][i]<<endl;
         
         p=(GAMMA-1) * ( U[2][i] - 0.5*U[1][i]*U[1][i] / U[0][i] );
-        foutP<<p<<endl;
+        foutP<<i*dx<<'\t'<<p<<endl;
     }
     
 }
