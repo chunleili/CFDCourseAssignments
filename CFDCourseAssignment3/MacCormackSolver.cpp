@@ -1,6 +1,6 @@
 #include"main.H"
 
-void MacCormackSolver( double U[3][maxSpace+2], double F[3][maxSpace+2], double F_half[3][maxSpace+2], double U_half[3][maxSpace+2] )
+void MacCormackSolver( double U[3][maxSpace+2], double F[3][maxSpace+2])
 {
     const double r = dt/dx;
     const double eta = 0.25;
@@ -9,6 +9,8 @@ void MacCormackSolver( double U[3][maxSpace+2], double F[3][maxSpace+2], double 
     int i, k;
 
     double U_new[3][maxSpace+2];
+    double U_half[3][maxSpace+2];
+    double F_half[3][maxSpace+2];
 
     //开关
     for ( i = 1; i < maxSpace; i++)
@@ -27,7 +29,7 @@ void MacCormackSolver( double U[3][maxSpace+2], double F[3][maxSpace+2], double 
         }
     }
 
-    UToF(U, F_half);
+//    UToF(U, F_half);
 
     //预报
     for (k = 0; k < 3; k++)

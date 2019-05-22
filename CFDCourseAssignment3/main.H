@@ -5,14 +5,8 @@
 #include<fstream>
 #include<cmath>
 #include<string>
-#include<vector>
 
 using namespace std;
-
-
-//						define the func										 //
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-void UToF(double U[][maxSpace+2], double F[][maxSpace+2]);
 
 
 //						declear the constants								 //
@@ -26,5 +20,12 @@ void UToF(double U[][maxSpace+2], double F[][maxSpace+2]);
 	const double dt = PhysicalTime / maxTime;
 
 	const double GAMMA = 1.4;
+
+//						define the func										 //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+void UToF(double U[][maxSpace+2], double F[][maxSpace+2]);
+void MacCormackSolver( double U[3][maxSpace+2], double F[3][maxSpace+2]);
+void init(double U[][maxSpace+2], double F[][maxSpace+2]);
+
 
 #endif
