@@ -4,7 +4,7 @@
 
 int main()
 {
-    double U[3][maxSpace+1], F[3][maxSpace+1];
+    double U[maxSpace+1][3], F[maxSpace+1][3];
 
     cout<<"\nInitializing the fields..."<<endl;
     init(U,F);

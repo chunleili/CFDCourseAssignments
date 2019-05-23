@@ -10,6 +10,8 @@
         "main.C": "cpp",
         "init.C": "cpp",
         "UToF.C": "cpp",
-        "print.C": "cpp"
+        "print.C": "cpp",
+        "scalarJSTSolver.C": "cpp",
+        "ctime": "cpp"
     }
 }
