@@ -2,14 +2,14 @@
 #include<cstdlib>
 #include<ctime>
 
-
-
 int main()
 {
     double U[3][maxSpace+1], F[3][maxSpace+1];
 
     cout<<"\nInitializing the fields..."<<endl;
     init(U,F);
+
+    print(U);
 
     cout<<"\n Ready iterating?(y/n)"<<endl;
     char key;
@@ -24,10 +24,10 @@ int main()
     for( unsigned int timeStep =0; timeStep<=maxTime; timeStep++)
     {
         cout<<"Current time step = "<<timeStep;
-        cout<<"\t Current physical time = "<<timeStep*dt;
+        cout<<"\t Current physical time = "<<timeStep*dt<<endl;
         MacCormackSolver(U, F);
 
-        cout<<"\tWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s";
+    //    cout<<"\tWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	//    cout<<"\tCPU time= "<<(double)clock()<<" s"<<endl;
     }
 

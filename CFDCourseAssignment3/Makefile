@@ -1,5 +1,5 @@
-OBJS = init.o print.o MacCormackSolver.o main.o UToF.C
-SRCS = init.C print.C MacCormackSolver.C main.C UTOF.C
+OBJS = init.o print.o MacCormackSolver.o main.o UToF.o
+SRCS = init.C print.C MacCormackSolver.C main.C UToF.C
 LIBS = -lm
 EXE  = out
 CFLG = -g -Wall -std=c++11	
@@ -11,8 +11,11 @@ print.o   : print.C main.H
 
 init.o : init.C main.H
 	g++ -g ${CFLG} -c init.C
+
+UToF.o : UToF.C main.H
+	g++ -g ${CFLG} -c UToF.C
 	
-MacCormackSolver.o  : MacCormackSolver.C main.H
+MacCormackSolver.o  : MacCormackSolver.C UToF.C main.H
 	g++ -g ${CFLG} -c MacCormackSolver.C
 	
 main.o     : $(SRCS) main.H

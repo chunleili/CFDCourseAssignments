@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "vector": "cpp",
+        "fstream": "cpp",
+        "cmath": "cpp",
+        "iostream": "cpp",
+        "cstdlib": "cpp",
+        "ostream": "cpp",
+        "MacCormackSolver.C": "cpp",
+        "main.C": "cpp",
+        "init.C": "cpp",
+        "UToF.C": "cpp",
+        "print.C": "cpp"
+    }
+}
