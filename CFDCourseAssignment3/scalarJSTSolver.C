@@ -7,7 +7,8 @@ static double max(double a, double b)
 
 void scalarJSTSolver(double U[][3])
 {
-    double D, Lambda, Lambda1, Ep2, Ep4, U_half[3], c, k2=0.5, k4=0.01, Y, Y1, R[3], F[3];
+    const double k2=0.5, k4=0.01;
+    double D, Lambda, Lambda1, Ep2, Ep4, c, Y, Y1, U_half[3], R[3], F[3];
     double U1[maxSpace+1][3];
     for (int I = 1; I <= maxSpace - 2; I++)
     {

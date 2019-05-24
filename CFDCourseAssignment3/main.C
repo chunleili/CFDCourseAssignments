@@ -4,12 +4,12 @@
 
 int main()
 {
-    double U[maxSpace+1][3], F[maxSpace+1][3];
+    double U[maxSpace+1][3];
 
     cout<<"\nInitializing the fields..."<<endl;
     init(U);
 
-    print(U);
+//    print(U);
 
     cout<<"\n Ready iterating?(y/n)"<<endl;
     char key;
@@ -25,8 +25,8 @@ int main()
     {
         cout<<"Current time step = "<<timeStep;
         cout<<"\t Current physical time = "<<timeStep*dt<<endl;
-        MacCormackSolver(U, F);
-
+    //    MacCormackSolver(U, F);
+        scalarJSTSolver(U);
     //    cout<<"\tWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	//    cout<<"\tCPU time= "<<(double)clock()<<" s"<<endl;
     }
