@@ -22,11 +22,21 @@ using namespace std;
 
 	const double GAMMA = 1.4;
 
+//						declear the inline funcs							 //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+inline double p(const double U[])
+{
+    return (GAMMA-1) * ( U[2] - 0.5*U[1]*U[1] / U[0] );
+}
+
+
+
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-void UToF(double U[][maxSpace+1], double F[][maxSpace+1]);
-void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1]);
-void init(double U[][maxSpace+1], double F[][maxSpace+1]);
-void print( double U[][maxSpace+1]);
+void UToF(double U[3], double F[3]);
+void MacCormackSolver( double U[][3], double F[][3]);
+void scalarJSTSolver(double U[][3]);
+void init(double U[][3]);
+void print( double U[][3]);
 
 #endif

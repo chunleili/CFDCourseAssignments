@@ -1,17 +1,16 @@
 #include"main.H"
 
-void UToF(double U[][maxSpace+1], double F[][maxSpace+1])
+void UToF(double U[3], double F[3])
 {
 
-    double u, p;
+    double u;
 
-    for (int i = 0; i <= maxSpace ; i++)
+//    for (int i = 0; i <= maxSpace ; i++)
     {
-        u = U[1][i] / U[0][i];
-        p = (GAMMA - 1) * (U[2][i] - 0.5 * U[1][i] * U[1][i] / U[0][i]);
-
-        F[0][i] = U[1][i];
-        F[1][i] = U[0][i]* u * u + p;
-        F[2][i] = (U[2][i] + p) * u;
+        u = U[1] / U[0];
+        
+        F[0] = U[1];
+        F[1] = U[0]* u * u + p(U) ;
+        F[2] = (U[2] + p(U) ) * u;
     }
 }
