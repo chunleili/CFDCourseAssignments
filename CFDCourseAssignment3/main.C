@@ -4,12 +4,12 @@
 
 int main()
 {
-    double U[maxSpace+1][3];
+    double U[maxSpace+1][3]={0};
 
     cout<<"\nInitializing the fields..."<<endl;
     init(U);
-
-//    print(U);
+     printU(U);
+     print(U);
 
     cout<<"\n Ready iterating?(y/n)"<<endl;
     char key;
@@ -35,6 +35,7 @@ int main()
     cout<<"\nCalculate over, printing results..."<<endl;
     print(U);
 
+    printU(U);
     cout<<"\nFinal Wall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	cout<<"Final CPU time= "<<(double)clock()<<" s"<<endl;
 

@@ -6,7 +6,6 @@
 #include<cmath>
 #include<cstdio>
 
-
 using namespace std;
 
 
@@ -37,6 +36,7 @@ void UToF(double U[3], double F[3]);
 void MacCormackSolver( double U[][3], double F[][3]);
 void scalarJSTSolver(double U[][3]);
 void init(double U[][3]);
-void print( double U[][3]);
+void print( const double U[][3]);
+void printU(const double U[][3]);
 
 #endif

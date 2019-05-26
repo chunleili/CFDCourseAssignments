@@ -1,6 +1,6 @@
 #include"main.H"
 
-void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
+void MacCormackSolver( double U[maxSpace+1][3], double F[maxSpace+1][3])
 {
     const double r = dt/dx;
     const double eta = 0.25;
@@ -8,16 +8,16 @@ void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
     double theta;
     int i, k;
 
-    double U_new[3][maxSpace+1];
-    double U_half[3][maxSpace+1];
-    double F_half[3][maxSpace+1];
+    double U_new[maxSpace+1][3];
+    double U_half[maxSpace+1][3];
+    double F_half[maxSpace+1][3];
 
 
     //开关
     for ( i = 1; i < maxSpace; i++)
     {
-        theta = fabs( ( fabs(U[0][i + 1] -U[0][i]) - fabs(U[0][i] -U[0][i-1])        )   
-                 /    ( fabs(U[0][i + 1] -U[0][i]) + fabs(U[0][i] -U[0][i-1]) +1e-100) ) ;
+        theta = fabs( ( fabs(U[i + 1][0]  -U[i][0]) - fabs(U[i][0] -U[i-1][0])        )  
+                 /    ( fabs(U[i + 1][0]  -U[i][0]) + fabs(U[i][0] -U[i-1][0]) +1e-100) ) ;
 
     }
 
@@ -26,7 +26,7 @@ void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
     {
         for (i = 0; i <= maxSpace; i++)
         {
-            U[k][i] = U[k][i] + 0.5 * eta * theta * (U[k][i + 1] - 2 * U[k][i] + U[k][i - 1]);
+            U[i][k] = U[i][k] + 0.5 * eta * theta * (U[i + 1][k] - 2 * U[i][k] + U[i - 1][k]);
         }
     }
 
@@ -37,7 +37,7 @@ void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
     {
         for (i = 1; i <= maxSpace; i++)
         {
-            U_half[k][i] = U[k][i] - r * (F[k][i] - F[k][i - 1]);
+            U_half[i][k] = U[i][k] - r * (F[i][k] - F[i - 1][k]);
         }
     }
 
@@ -48,7 +48,7 @@ void MacCormackSolver( double U[3][maxSpace+1], double F[3][maxSpace+1])
     {
         for (i = 1; i <= maxSpace; i++)
         {
-            U_new[k][i] = 0.5 * (U[k][i] + U_half[k][i]) - 0.5 * r * (F_half[k][i + 1] - F_half[k][i]);
+            U_new[i][k] = 0.5 * (U[i][k] + U_half[i][k]) - 0.5 * r * (F_half[i [k]+ 1] - F_half[i][k]);
         }
     }
 }
