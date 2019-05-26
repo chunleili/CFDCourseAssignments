@@ -2,6 +2,7 @@
 
 void print(const double U[][3])
 {
+
     /*
     ofstream foutRho("data/rho.dat");
     ofstream foutP("data/p.dat");
@@ -16,6 +17,9 @@ void print(const double U[][3])
     }
     */
     ofstream foutAll("data/result.dat");
+    foutAll.setf(ios::fixed);
+    foutAll.setf(ios::showpoint);
+    foutAll.precision(3);
     cout<<"\nprint the rho, u, p, in the data/result.dat, first column is distance"<<endl;
     for (int i = 0; i <= maxSpace; i++)
     {

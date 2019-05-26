@@ -12,6 +12,9 @@
         "UToF.C": "cpp",
         "print.C": "cpp",
         "scalarJSTSolver.C": "cpp",
-        "ctime": "cpp"
-    }
+        "ctime": "cpp",
+        "Boundary.C": "cpp",
+        "boundary.C": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

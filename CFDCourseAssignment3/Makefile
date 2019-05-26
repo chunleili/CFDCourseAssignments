@@ -1,27 +1,30 @@
-SOL  = scalarJSTSolver
-OBJS = init.o print.o ${SOL}.o main.o UToF.o
-SRCS = init.C print.C ${SOL}.C main.C UToF.C
+#SOL  = scalarJSTSolver
+SOL  = MacCormackSolver
+OBJS = init.o print.o ${SOL}.o main.o UToF.o boundary.o
+SRCS = init.C print.C ${SOL}.C main.C UToF.C boundary.C
 LIBS = -lm
 EXE  = out
 CFLG = -g -Wall -std=c++11	
-main       : $(OBJS) main.H
+start   : $(OBJS) main.H
 	g++ -o ${EXE} ${CFLG} ${OBJS} ${LIBS}
 
+boundary : boundary.C
+	g++  ${CFLG} -c boundary.C
+
 print.o   : print.C main.H
-	g++ -g ${CFLG} -c print.C
+	g++  ${CFLG} -c print.C
 
 init.o : init.C main.H
-	g++ -g ${CFLG} -c init.C
+	g++  ${CFLG} -c init.C
 
 UToF.o : UToF.C main.H
-	g++ -g ${CFLG} -c UToF.C
+	g++  ${CFLG} -c UToF.C
 
-${SOL}.o  : ${SOL}.C UToF.C main.H
-	g++ -g ${CFLG} -c ${SOL}.C
+${SOL}.o  : ${SOL}.C UToF.C main.H 
+	g++  ${CFLG} -c ${SOL}.C
 
-
-main.o     : $(SRCS) main.H
-	g++ -g ${CFLG} -c main.C
+main.o     : $(SRCS) main.H boundary.C
+	g++  ${CFLG} -c main.C
 
 .PHONY:clean  clean_data clean_log clean_all
 clean      :

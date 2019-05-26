@@ -25,8 +25,9 @@ int main()
     {
         cout<<"Current time step = "<<timeStep;
         cout<<"\t Current physical time = "<<timeStep*dt<<endl;
-    //    MacCormackSolver(U, F);
-        scalarJSTSolver(U);
+        MacCormackSolver(U);
+        boundary(U);
+     //   scalarJSTSolver(U);
     //    cout<<"\tWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	//    cout<<"\tCPU time= "<<(double)clock()<<" s"<<endl;
     }

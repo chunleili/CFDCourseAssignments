@@ -33,10 +33,11 @@ inline double p(const double U[])
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 void UToF(double U[3], double F[3]);
-void MacCormackSolver( double U[][3], double F[][3]);
+void MacCormackSolver( double U[][3]);
 void scalarJSTSolver(double U[][3]);
 void init(double U[][3]);
 void print( const double U[][3]);
 void printU(const double U[][3]);
+void boundary(double U[][3]);
 
 #endif
