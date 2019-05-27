@@ -1,6 +1,6 @@
 #include"main.H"
 
-void UToF(double U[3], double F[3])
+void UToF(double const U[3], double F[3])
 {
 
     double u;

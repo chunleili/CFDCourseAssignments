@@ -8,8 +8,8 @@ int main()
 
     cout<<"\nInitializing the fields..."<<endl;
     init(U);
-     printU(U);
-     print(U);
+    printU(U);
+    print(U);
 
     cout<<"\n Ready iterating?(y/n)"<<endl;
     char key;
@@ -19,23 +19,20 @@ int main()
         cout<<"User terminated!"<<endl;
         exit(0);
     }
+    
 
     cout<<"\nMarching in the time steps"<<endl;
-    for( unsigned int timeStep =0; timeStep<=maxTime; timeStep++)
+    for( int timeStep =0; timeStep<=maxTime; timeStep++)
     {
         cout<<"Current time step = "<<timeStep;
         cout<<"\t Current physical time = "<<timeStep*dt<<endl;
         MacCormackSolver(U);
-        boundary(U);
-     //   scalarJSTSolver(U);
-    //    cout<<"\tWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
-	//    cout<<"\tCPU time= "<<(double)clock()<<" s"<<endl;
+    //    scalarJSTSolver(U);
     }
 
 
     cout<<"\nCalculate over, printing results..."<<endl;
     print(U);
-
     printU(U);
     cout<<"\nFinal Wall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	cout<<"Final CPU time= "<<(double)clock()<<" s"<<endl;

@@ -8,7 +8,7 @@ void MacCormackSolver( double U[][3])
     double theta;
     int i, k;
 
-    double U_half[maxSpace+1][3];
+    double Uf[maxSpace+1][3];
     double Ef[maxSpace+1][3];
 
 
@@ -37,24 +37,31 @@ void MacCormackSolver( double U[][3])
     {
         UToF(U[i], Ef[i]);
     }
-    
 
     //预报
     for (i = 1; i < maxSpace; i++)
     {
         for (k = 0; k < 3; k++)
         {
-            U_half[i][k] = U[i][k] - r * (Ef[i+1][k] - Ef[i][k]);
+            Uf[i][k] = U[i][k] - r * (Ef[i+1][k] - Ef[i][k]);
         }
     }
 
-    
     //校正
     for (k = 0; k < 3; k++)
     {
         for (i = 1; i <= maxSpace; i++)
         {
-            U[i][k] = 0.5 * (U[i][k] + U_half[i][k]) - 0.5 * r * (Ef[i][k] - Ef[i][k]);
+            U[i][k] = 0.5 * (U[i][k] + Uf[i][k]) - 0.5 * r * (Ef[i][k] - Ef[i][k]);
         }
+    }
+
+    //边界条件
+    for (int k  = 0; k < 3; k++)
+    {
+        //左边界
+        U[0][k]=U[1][k];
+        //右边界
+        U[maxSpace][k]=U[maxSpace-1][k];
     }
 }

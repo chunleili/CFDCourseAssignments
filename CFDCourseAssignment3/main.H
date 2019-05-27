@@ -11,11 +11,11 @@ using namespace std;
 
 //						declear the constants								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-	const int maxSpace= 100;
+	const int maxSpace= 1000;
 	const double physicalSpace = 2;
 	const double dx = physicalSpace / maxSpace;
 
-	const int maxTime = 10000;
+	const int maxTime = 100000;
 	const double PhysicalTime = 0.4;
 	const double dt = PhysicalTime / maxTime;
 
@@ -32,12 +32,11 @@ inline double p(const double U[])
 
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-void UToF(double U[3], double F[3]);
+void UToF(double const U[3], double F[3]);
 void MacCormackSolver( double U[][3]);
 void scalarJSTSolver(double U[][3]);
 void init(double U[][3]);
 void print( const double U[][3]);
 void printU(const double U[][3]);
-void boundary(double U[][3]);
 
 #endif

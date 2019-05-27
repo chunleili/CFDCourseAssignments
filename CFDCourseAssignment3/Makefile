@@ -8,9 +8,6 @@ CFLG = -g -Wall -std=c++11
 start   : $(OBJS) main.H
 	g++ -o ${EXE} ${CFLG} ${OBJS} ${LIBS}
 
-boundary : boundary.C
-	g++  ${CFLG} -c boundary.C
-
 print.o   : print.C main.H
 	g++  ${CFLG} -c print.C
 
