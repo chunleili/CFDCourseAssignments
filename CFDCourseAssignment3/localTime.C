@@ -1,14 +1,14 @@
 #include"main.H"
 
-double CFL(const double U[][3])
+double localTime(const double U[][3])
 {
     double maxVel=1e-100, Lambda;
-    const double Sf=0.8;
+    const double CFLnumber=0.5;
     for (int i = 0; i <=maxSpace; i++)
     {
         Lambda=lambda(U[i]);
         if (Lambda>maxVel)
              maxVel=Lambda;
     }
-    return Sf*dx/maxVel;
+    return CFLnumber*dx/maxVel;
 }

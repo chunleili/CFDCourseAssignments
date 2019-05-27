@@ -1,15 +1,15 @@
 SOL  = scalarJSTSolver
 #SOL  = MacCormackSolver
-OBJS = init.o print.o ${SOL}.o main.o UToF.o CFL.o
-SRCS = init.C print.C ${SOL}.C main.C UToF.C CFL.C
+OBJS = init.o print.o ${SOL}.o main.o UToF.o localTime.o
+SRCS = init.C print.C ${SOL}.C main.C UToF.C localTime.C
 LIBS = -lm
 EXE  = out
 CFLG = -g -Wall -std=c++11	
 start   : $(OBJS) main.H
 	g++ -o ${EXE} ${CFLG} ${OBJS} ${LIBS}
 
-CFL.o :	CFL.C main.H
-	g++ ${CFLG} -c CFL.C
+localTime.o :	localTime.C main.H
+	g++ ${CFLG} -c localTime.C
 
 print.o : print.C main.H
 	g++  ${CFLG} -c print.C

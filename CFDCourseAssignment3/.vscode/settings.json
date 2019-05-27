@@ -15,7 +15,8 @@
         "ctime": "cpp",
         "Boundary.C": "cpp",
         "boundary.C": "cpp",
-        "CFL.C": "cpp"
+        "CFL.C": "cpp",
+        "localTime.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -21,7 +21,7 @@ int main()
     }
 
     cout<<"\nMarching in the time steps"<<endl;
-    double dt=CFL(U);
+    double dt=localTime(U);
     int timeStep=0;
     for( double t =0; t<=stopTime && timeStep<maxTime; t+=dt)
     {
@@ -30,7 +30,7 @@ int main()
         cout<<"\t physical time = "<<t<<endl;
      //   MacCormackSolver(U,dt);
         scalarJSTSolver(U,dt);
-        dt=CFL(U);
+        dt=localTime(U);
         timeStep++;
     }
 

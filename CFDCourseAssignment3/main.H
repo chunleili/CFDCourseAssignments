@@ -51,6 +51,6 @@ void scalarJSTSolver(double U[][3], const double dt);
 void init(double U[][3]);
 void print( const double U[][3]);
 void printU(const double U[][3]);
-double CFL(const double U[][3]);
+double localTime(const double U[][3]);
 
 #endif
