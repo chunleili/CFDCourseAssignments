@@ -1,22 +1,6 @@
 #include"main.H"
 
-inline static double max(double a, double b)
-{
-    return a>b?a:b;
-}
-//计算声速c
-inline static double c(const double U[3])
-{
-    return sqrt( GAMMA * p(U)/U[0] );
-}
-
-inline static double lambda(const double U[3])
-{
-    return fabs(U[1]/U[0]) + c(U);
-}
-
-
-void scalarJSTSolver(double U[][3])
+void scalarJSTSolver(double U[][3], const double dt)
 {
     const double k2=0.5, k4=0.01;
     double D[3], Lambda, Ep2, Ep4, Y, Y1, Uf[3], R[3], F[3];

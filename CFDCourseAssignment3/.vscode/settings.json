@@ -14,7 +14,8 @@
         "scalarJSTSolver.C": "cpp",
         "ctime": "cpp",
         "Boundary.C": "cpp",
-        "boundary.C": "cpp"
+        "boundary.C": "cpp",
+        "CFL.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -19,17 +19,20 @@ int main()
         cout<<"User terminated!"<<endl;
         exit(0);
     }
-    
 
     cout<<"\nMarching in the time steps"<<endl;
-    for( int timeStep =0; timeStep<=maxTime; timeStep++)
+    double dt=CFL(U);
+    int timeStep=0;
+    for( double t =0; t<=stopTime && timeStep<maxTime; t+=dt)
     {
-        cout<<"Current time step = "<<timeStep;
-        cout<<"\t Current physical time = "<<timeStep*dt<<endl;
-        MacCormackSolver(U);
-    //    scalarJSTSolver(U);
+        cout<<"dt= "<<dt;
+        cout<<"\t time step = "<<timeStep;
+        cout<<"\t physical time = "<<t<<endl;
+     //   MacCormackSolver(U,dt);
+        scalarJSTSolver(U,dt);
+        dt=CFL(U);
+        timeStep++;
     }
-
 
     cout<<"\nCalculate over, printing results..."<<endl;
     print(U);

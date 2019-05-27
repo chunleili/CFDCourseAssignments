@@ -16,8 +16,7 @@ using namespace std;
 	const double dx = physicalSpace / maxSpace;
 
 	const int maxTime = 100000;
-	const double PhysicalTime = 0.4;
-	const double dt = PhysicalTime / maxTime;
+	const double stopTime = 0.4;
 
 	const double GAMMA = 1.4;
 
@@ -28,15 +27,30 @@ inline double p(const double U[])
     return (GAMMA-1) * ( U[2] - 0.5*U[1]*U[1] / U[0] );
 }
 
+inline  double max(double a, double b)
+{
+    return a>b?a:b;
+}
+//计算声速c
+inline  double c(const double U[3])
+{
+    return sqrt( GAMMA * p(U)/U[0] );
+}
+
+inline  double lambda(const double U[3])
+{
+    return fabs(U[1]/U[0]) + c(U);
+}
 
 
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 void UToF(double const U[3], double F[3]);
-void MacCormackSolver( double U[][3]);
-void scalarJSTSolver(double U[][3]);
+void MacCormackSolver( double U[][3], const double dt);
+void scalarJSTSolver(double U[][3], const double dt);
 void init(double U[][3]);
 void print( const double U[][3]);
 void printU(const double U[][3]);
+double CFL(const double U[][3]);
 
 #endif
