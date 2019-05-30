@@ -1,8 +1,8 @@
-SOL  = scalarJSTConv
-#SOL  = MacCormackConv
-#SOL = RoeConv
-OBJS = init.o print.o ${SOL}.o main.o UToF.o localTime.o
-SRCS = init.C print.C ${SOL}.C main.C UToF.C localTime.C
+CONV  = scalarJSTConv
+#CONV = MacCormackConv
+#CONV = RoeConv
+OBJS = init.o print.o ${CONV}.o main.o WToF.o localTime.o BC.o EulerFTime.o
+SRCS = init.C print.C ${CONV}.C main.C WToF.C localTime.C BC.C EulerFTime.C
 LIBS = -lm
 EXE  = out
 CFLG = -g -Wall -std=c++11	
@@ -18,11 +18,16 @@ print.o : print.C main.H
 init.o : init.C main.H
 	g++  ${CFLG} -c init.C
 
-UToF.o : UToF.C main.H
-	g++  ${CFLG} -c UToF.C
+WToF.o : WToF.C main.H
+	g++  ${CFLG} -c WToF.C
 
-${SOL}.o  : ${SOL}.C UToF.C main.H 
-	g++  ${CFLG} -c ${SOL}.C
+${CONV}.o  : ${CONV}.C WToF.C main.H 
+	g++  ${CFLG} -c ${CONV}.C
+
+BC.o : BC.C main.H
+	g++ ${CFLG} -c BC.C
+EulerFTime.o : EulerFTime.C main.H
+	g++ ${CFLG}	-c EulerFTime.C
 
 main.o    : $(SRCS) main.H 
 	g++  ${CFLG} -c main.C

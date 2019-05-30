@@ -21,7 +21,11 @@
         "EulerFTime.C": "cpp",
         "RoeConv.C": "cpp",
         "scalarJSTConv.C": "cpp",
-        "MacCormackConv.C": "cpp"
+        "MacCormackConv.C": "cpp",
+        "ResidualMax.C": "cpp",
+        "BC.C": "cpp",
+        "iomanip": "cpp",
+        "WToF.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
