@@ -1,7 +1,9 @@
 #include"main.H"
 #include<cstdlib>
 #include<ctime>
-
+#define CONV scalarJSTConv
+//  #define CONV MacCormackConv;
+//  #define CONV RoeConv;
 int main()
 {
     double U[maxSpace+1][3]={0}, R[maxSpace+1][3]={0};
@@ -21,17 +23,18 @@ int main()
     }
 
     cout<<"\nMarching in the time steps"<<endl;
-    double dt=localTime(U);
+    double dt=localTime(U), Rmax=0;
     int timeStep=0;
     for( double t =0; t<=stopTime && timeStep<maxTime; t+=dt)
     {
         cout<<"dt= "<<dt;
         cout<<"\t time step = "<<timeStep;
-        cout<<"\t physical time = "<<t<<endl;
-     //   MacCormackSolver(U,dt,R);
-     //   scalarJSTSolver(U,dt,R);
-     //   RoeSolver(U,dt,R);
-        EulerFTime(U,dt);
+        cout<<"\t time = "<<t;
+     //   MacCormackConv(U,dt,R);
+        Conv(U,dt,R);
+     //   RoeConv(U,dt,R);
+        EulerFTime(U,dt,R);
+        cout<<"\t Residual = "<<Rmax<<endl;
         dt=localTime(U);
         timeStep++;
     }

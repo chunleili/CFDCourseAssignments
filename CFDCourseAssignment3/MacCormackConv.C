@@ -1,6 +1,6 @@
 #include"main.H"
 
-void MacCormackSolver( double U[][3], const double dt)
+void MacCormackConv( double U[][3], const double dt)
 {
     const double r = dt/dx;
     const double eta = 0.25;

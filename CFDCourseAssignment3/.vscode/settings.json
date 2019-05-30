@@ -18,7 +18,10 @@
         "CFL.C": "cpp",
         "localTime.C": "cpp",
         "RoeSolver.C": "cpp",
-        "EulerFTime.C": "cpp"
+        "EulerFTime.C": "cpp",
+        "RoeConv.C": "cpp",
+        "scalarJSTConv.C": "cpp",
+        "MacCormackConv.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

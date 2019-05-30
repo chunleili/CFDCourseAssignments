@@ -1,6 +1,6 @@
 #include"main.H"
 
-scalarJSTSolver(double U[][3], const double dt, double R[][3])
+scalarJSTConv(double U[][3], const double dt, double R[][3])
 {
     const double k2=0.5, k4=0.01;
     double D[3], Lambda, Ep2, Ep4, Y, Y1, Uf[3], F[3];

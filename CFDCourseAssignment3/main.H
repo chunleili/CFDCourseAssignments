@@ -46,9 +46,9 @@ inline  double lambda(const double U[3])
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 void UToF(double const U[3], double F[3]);
-void MacCormackSolver( double U[][3], const double dt);
-void scalarJSTSolver(double U[][3], const double dt, double R[][3]);
-void RoeSolver(double U[][3], const double dt, double R[][3]);
+void MacCormackConv( double U[][3], const double dt);
+void scalarJSTConv(double U[][3], const double dt, double R[][3]);
+void RoeConv(double U[][3], const double dt, double R[][3]);
 void init(double U[][3]);
 void print( const double U[][3]);
 void printU(const double U[][3]);
