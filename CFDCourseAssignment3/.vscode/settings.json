@@ -16,7 +16,9 @@
         "Boundary.C": "cpp",
         "boundary.C": "cpp",
         "CFL.C": "cpp",
-        "localTime.C": "cpp"
+        "localTime.C": "cpp",
+        "RoeSolver.C": "cpp",
+        "EulerFTime.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

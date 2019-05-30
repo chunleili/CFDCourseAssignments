@@ -21,6 +21,7 @@ void print(const double U[][3])
     foutAll.setf(ios::showpoint);
     foutAll.precision(3);
     cout<<"\nprint the rho, u, p, in the data/result.dat, first column is distance"<<endl;
+    foutAll<<"x"<<'\t'<<"rho"<<'\t'<<"u"<<'\t'<<"p"<<endl;
     for (int i = 0; i <= maxSpace; i++)
     {
         foutAll<<i*dx<<'\t'<<U[i][0]<<'\t'<<U[i][1]/U[i][0]<<'\t'<<p(U[i])<<endl;

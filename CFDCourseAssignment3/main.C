@@ -4,7 +4,7 @@
 
 int main()
 {
-    double U[maxSpace+1][3]={0};
+    double U[maxSpace+1][3]={0}, R[maxSpace+1][3]={0};
 
     cout<<"\nInitializing the fields..."<<endl;
     init(U);
@@ -28,8 +28,10 @@ int main()
         cout<<"dt= "<<dt;
         cout<<"\t time step = "<<timeStep;
         cout<<"\t physical time = "<<t<<endl;
-     //   MacCormackSolver(U,dt);
-        scalarJSTSolver(U,dt);
+     //   MacCormackSolver(U,dt,R);
+     //   scalarJSTSolver(U,dt,R);
+     //   RoeSolver(U,dt,R);
+        EulerFTime(U,dt);
         dt=localTime(U);
         timeStep++;
     }

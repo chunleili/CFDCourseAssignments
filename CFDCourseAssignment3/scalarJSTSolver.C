@@ -1,9 +1,9 @@
 #include"main.H"
 
-void scalarJSTSolver(double U[][3], const double dt)
+scalarJSTSolver(double U[][3], const double dt, double R[][3])
 {
     const double k2=0.5, k4=0.01;
-    double D[3], Lambda, Ep2, Ep4, Y, Y1, Uf[3], R[3], F[3];
+    double D[3], Lambda, Ep2, Ep4, Y, Y1, Uf[3], F[3];
     double U1[maxSpace+1][3];
     for (int I = 1; I <= maxSpace - 2; I++)
     {
@@ -11,11 +11,12 @@ void scalarJSTSolver(double U[][3], const double dt)
         //其中Y与Y1是开关函数,用于切换Ep2和Ep4
         Lambda = 0.5 * (lambda(U[I]) + lambda(U[I + 1]));
 
-        Y = fabs(p(U[I + 1]) - 2 * p(U[I]) + p(U[I - 1])) 
-             / (p(U[I + 1]) + 2 * p(U[I]) + p(U[I - 1]));
+        const double p1=p(U[I+1]), p2=p(U[I + 2]), p0=p(U[I]), p_1=p(U[I - 1]);
+        Y = fabs(p1- 2 * p0 + p_1) 
+             / (p1+ 2 * p0 + p_1);
 
-        Y1 = fabs(p(U[I + 2]) - 2 * p(U[I + 1]) + p(U[I])) 
-             / (p(U[I + 2]) + 2 * p(U[I + 1]) + p(U[I]));
+        Y1 = fabs(p2 - 2 * p1+ p0) 
+             / (p2 + 2 * p1+ p0);
 
         Ep2 = k2 * max(Y, Y1);
         Ep4 = max(0, k4 - Ep2);
@@ -36,9 +37,9 @@ void scalarJSTSolver(double U[][3], const double dt)
         //最后算出残差R, 用欧拉后插离散时间项,算出下一时间步流动变量U1
         for(int k =0; k<3; k++)
         {
-            R[k] = F[k]  - D[k];
+            R[I][k] = F[k]  - D[k];
 
-            U1[I][k] = dt * R[k] + U[I][k];
+        //    U1[I][k] = dt * R[k] + U[I][k];
         }
     }
 

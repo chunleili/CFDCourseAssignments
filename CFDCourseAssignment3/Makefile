@@ -1,5 +1,6 @@
 SOL  = scalarJSTSolver
 #SOL  = MacCormackSolver
+#SOL = RoeSolver
 OBJS = init.o print.o ${SOL}.o main.o UToF.o localTime.o
 SRCS = init.C print.C ${SOL}.C main.C UToF.C localTime.C
 LIBS = -lm

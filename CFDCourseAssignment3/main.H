@@ -16,7 +16,7 @@ using namespace std;
 	const double dx = physicalSpace / maxSpace;
 
 	const int maxTime = 100000;
-	const double stopTime = 0.4;
+	const double stopTime = 0.1;
 
 	const double GAMMA = 1.4;
 
@@ -47,10 +47,12 @@ inline  double lambda(const double U[3])
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 void UToF(double const U[3], double F[3]);
 void MacCormackSolver( double U[][3], const double dt);
-void scalarJSTSolver(double U[][3], const double dt);
+void scalarJSTSolver(double U[][3], const double dt, double R[][3]);
+void RoeSolver(double U[][3], const double dt, double R[][3]);
 void init(double U[][3]);
 void print( const double U[][3]);
 void printU(const double U[][3]);
 double localTime(const double U[][3]);
+void EulerFTime(double U[][3], const double dt, const double R[][3]);
 
 #endif
