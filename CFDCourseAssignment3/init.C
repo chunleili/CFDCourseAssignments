@@ -3,8 +3,8 @@
 void init(double W[][3])
 {
     cout<<"\nInitializing the fields..."<<endl;
-    double u1=0.0, rho1=1.0, p1=1.0;
-    double u2=0.0, rho2=0.125, p2=0.1;
+    double u1=0.0, rho1=1.0, p1=1.0e6;
+    double u2=0.0, rho2=0.125, p2=0.1e6;
 
     for(int i=0; i< maxSpace/2; i++)
     {

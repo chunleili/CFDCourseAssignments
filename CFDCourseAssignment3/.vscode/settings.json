@@ -30,7 +30,9 @@
         "maxOverFild.C": "cpp",
         "maxOverField.C": "cpp",
         "cstdio": "cpp",
-        "minOverScalarField.C": "cpp"
+        "minOverScalarField.C": "cpp",
+        "toolFuncs.C": "cpp",
+        "calDtGlobal.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -1,32 +1,26 @@
 #include "main.H"
 #include <ctime>
-
+#include<cstdlib>
+double calDtGlobal(double W[][3]);
 int main()
 {
-    double W[maxSpace + 1][3] = {0}, R[maxSpace + 1][3] = {0};
+    double W[maxSpace + 1][3] , R[maxSpace + 1][3] ;
     init(W);
-    double dtGlobal = 1111;
+    double dtGlobal;
     int timeStep = 0;
-    for (double t = 0; t <= stopTime && timeStep < maxTime; t += dtGlobal)
+    for (double t = 0; t <= stopTime ; t += dtGlobal)
     {
-        double dtLocal;
-        for (int I = 0; I <= maxSpace; I++)
+        dtGlobal=calDtGlobal(W);
+        for (int I = 1; I <= maxSpace-2; I++)
         {
-            dtLocal = localTime(W, I);
-            TIME_DIS(W, dtLocal, R, I);
-            if (dtGlobal > dtLocal)
-                dtGlobal = dtLocal;
+            TIME_DIS(W, dtGlobal, R, I);
         }
-
+        zeroGradBC(W);
         timeStep++;
         cout << "dtGlobal= " << dtGlobal;
         cout << "\t time step = " << timeStep;
         cout << "\t time = " << t << endl;
     }
-
     print(W);
-    printW(W);
-    cout << "\nFinal Wall time = " << (double)clock() / CLOCKS_PER_SEC << " s" << endl;
-
     return 0;
 }

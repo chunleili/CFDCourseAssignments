@@ -1,9 +1,8 @@
 #include"main.H"
 
-void scalarJSTConv(double W[][3], const double dt, double R[][3], const int I)
+void scalarJSTConv(const double W[][3], const double dt, double R[][3], const int I)
 {
     const double k2=0.5, k4=0.01;
-   // const double Lambda, Ep2, Ep4, Y, Y1,;
     double D[3],  Wf[3], F[3];
     if(I>=1 && I<=maxSpace-2)
     {
@@ -13,10 +12,10 @@ void scalarJSTConv(double W[][3], const double dt, double R[][3], const int I)
 
         const double p1=p(W[I+1]), p2=p(W[I + 2]), p0=p(W[I]), p_1=p(W[I - 1]);
         const double Y = fabs(p1- 2 * p0 + p_1) 
-                      / (p1+ 2 * p0 + p_1);
+                           / (p1+ 2 * p0 + p_1);
 
         const double Y1 = fabs(p2 - 2 * p1+ p0) 
-                        / (p2 + 2 * p1+ p0);
+                            / (p2 + 2 * p1+ p0);
 
         const double Ep2 = k2 * max(Y, Y1);
         const double Ep4 = max(0, k4 - Ep2);
@@ -33,19 +32,13 @@ void scalarJSTConv(double W[][3], const double dt, double R[][3], const int I)
         }
     }
 
-    else
-    {
-        //外推边界网格的W, 第一个时间步内是根据初场外推的
-        zeroGradBC(W);
-    }
-
     //face上的流动变量Wf转换为通量F
 //    WToF(Wf, F);
-    double p0=p(W[I]);
-    double u=W[I][1]/W[I][0];
-    F[0] = W[I][1];
-    F[1] = W[I][0] * u * u + p0;
-    F[2] = (W[I][2] + p0) * u;
+    double p0=p(Wf);
+    double u=Wf[1]/Wf[0];
+    F[0] = Wf[1];
+    F[1] = Wf[0] * u * u + p0;
+    F[2] = (Wf[2] + p0) * u;
 
     //最后算出残差R
     for (int k = 0; k < 3; k++)

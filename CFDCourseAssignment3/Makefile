@@ -2,8 +2,9 @@ CONV  = scalarJSTConv
 #CONV = MacCormackConv
 #CONV = RoeConv
 TIME_DIS = RungeKuttaTime
-OBJS = init.o print.o ${CONV}.o main.o WToF.o localTime.o BC.o ${TIME_DIS}.o minOverScalarField.o
-SRCS = init.C print.C ${CONV}.C main.C WToF.C localTime.C BC.C ${TIME_DIS}.C minOverScalarField.C
+#TIME_DIS = EulerFTime
+OBJS = init.o print.o ${CONV}.o main.o WToF.o localTime.o BC.o ${TIME_DIS}.o minOverScalarField.o calDtGlobal.o
+SRCS = init.C print.C ${CONV}.C main.C WToF.C localTime.C BC.C ${TIME_DIS}.C minOverScalarField.C calDtGlobal.C
 LIBS = -lm
 EXE  = out
 CFLG = -g -Wall -std=c++11	
@@ -21,6 +22,9 @@ init.o : init.C main.H
 
 WToF.o : WToF.C main.H
 	g++  ${CFLG} -c WToF.C
+
+calDtGlobal.o : calDtGlobal.C main.H
+	g++  ${CFLG} -c calDtGlobal.C
 
 ${CONV}.o  : ${CONV}.C WToF.C main.H 
 	g++  ${CFLG} -c ${CONV}.C

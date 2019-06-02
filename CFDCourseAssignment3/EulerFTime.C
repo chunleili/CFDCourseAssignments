@@ -1,12 +1,10 @@
 #include"main.H"
-void EulerFTime(double W[][3], const double dt, const double R[][3])
+void EulerFTime(double W[][3], const double dt,  double R[][3], const int I)
 {
-    CONV(W,dt,R);
-    for (int I = 0; I <= maxSpace; I++)
+    CONV(W,dt,R, I);
+
+    for (int k = 0; k < 3; k++)
     {
-        for (int k = 0; k < 3; k++)
-        {
-            W[I][k] = dt * (-1/dx)*R[I][k] + W[I][k];
-        }
+        W[I][k] = dt * (-1 / dx) * R[I][k] + W[I][k];
     }
 }
