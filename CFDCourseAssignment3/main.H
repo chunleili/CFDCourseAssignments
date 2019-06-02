@@ -2,7 +2,7 @@
 #define main_H
 
 #include<cmath>
-
+#include<iostream>
 using namespace std;
 
 #define CONV scalarJSTConv

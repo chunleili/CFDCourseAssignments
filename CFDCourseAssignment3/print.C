@@ -1,7 +1,5 @@
 #include"main.H"
 #include<fstream>
-#include<iostream>
-#include<cstdio>
 #include<iomanip>
 void print(const double W[][3])
 {

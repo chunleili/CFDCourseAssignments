@@ -2,6 +2,7 @@
 
 void init(double W[][3])
 {
+    cout<<"\nInitializing the fields..."<<endl;
     double u1=0.0, rho1=1.0, p1=1.0;
     double u2=0.0, rho2=0.125, p2=0.1;
 
