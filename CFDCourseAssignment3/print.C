@@ -1,5 +1,8 @@
 #include"main.H"
-
+#include<fstream>
+#include<iostream>
+#include<cstdio>
+#include<iomanip>
 void print(const double W[][3])
 {
 
@@ -17,8 +20,8 @@ void print(const double W[][3])
     }
     */
     ofstream foutAll("data/result.dat");
-    foutAll.setf(ios::fixed);
-    foutAll.setf(ios::showpoint);
+    //foutAll.setf(ios::fixed);
+    //foutAll.setf(ios::showpoint);
     foutAll.setf(ios::left);
     foutAll.precision(3);
     cout<<"\nprint the rho, u, p, in the data/result.dat, first column is distance"<<endl;

@@ -25,7 +25,12 @@
         "ResidualMax.C": "cpp",
         "BC.C": "cpp",
         "iomanip": "cpp",
-        "WToF.C": "cpp"
+        "WToF.C": "cpp",
+        "RungeKuttaTime.C": "cpp",
+        "maxOverFild.C": "cpp",
+        "maxOverField.C": "cpp",
+        "cstdio": "cpp",
+        "minOverScalarField.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
