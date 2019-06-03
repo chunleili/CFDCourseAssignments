@@ -1,7 +1,7 @@
 #include"main.H"
 #include<cstdlib>
 //一阶精度的三阶显式RungeKutta法
-void RungeKuttaTime(double W[][3], double dt, double R[][3], const int I)
+void RungeKuttaTime(double W[][3], const double dt, double R[][3], const int I)
 {
     const double alpha1=0.1481, alpha2=0.4, alpha3=1;
     //先定义W0,用于保存原始的W

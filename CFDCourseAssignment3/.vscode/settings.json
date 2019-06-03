@@ -32,7 +32,9 @@
         "cstdio": "cpp",
         "minOverScalarField.C": "cpp",
         "toolFuncs.C": "cpp",
-        "calDtGlobal.C": "cpp"
+        "calDtGlobal.C": "cpp",
+        "others.C": "cpp",
+        "try.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -6,7 +6,7 @@ void zeroGradBC(double W[][3])
     for (int k = 0; k < 3; k++)
     {
         W[0][k] = W[1][k];
-        W[maxSpace - 1][k] = W[maxSpace - 2][k];
+        W[maxSpace][k] = W[maxSpace - 2][k];
         W[maxSpace][k] = W[maxSpace - 1][k];
     }
 }
