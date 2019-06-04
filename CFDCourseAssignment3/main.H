@@ -5,11 +5,11 @@
 #include<iostream>
 using namespace std;
 
-#define CONV scalarJSTConv
+//#define CONV scalarJSTConv
 //  #define CONV MacCormackConv
 //  #define CONV RoeConv
 //#define TIME_DIS EulerFTime
-#define TIME_DIS RungeKuttaTime
+//#define TIME_DIS RungeKuttaTime
 
 //						declear the constants								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -60,8 +60,9 @@ inline double WToVelocity(const double vector[3])
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-void CONV(const double W[][3], const double dtLocal, double R[][3], const int I);
-void TIME_DIS(double W[][3], const double dt, double R[][3], const int I);
+void scalarJSTConv(const double W[][3],  double R[][3]);
+void RungeKuttaTime(double W[][3], const double dt, double R[][3]);
+void EulerFTime(double W[][3], const double dt, double R[][3]);
 void zeroGradBC(double W[][3]);
 void init(double W[][3]);
 double localTime(const double W[][3],const int I);

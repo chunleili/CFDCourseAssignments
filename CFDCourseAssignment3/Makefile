@@ -1,10 +1,10 @@
 CONV  = scalarJSTConv
 #CONV = MacCormackConv
 #CONV = RoeConv
-TIME_DIS = RungeKuttaTime
-#TIME_DIS = EulerFTime
-OBJS = init.o print.o ${CONV}.o main.o WToF.o localTime.o BC.o ${TIME_DIS}.o minOverScalarField.o calDtGlobal.o
-SRCS = init.C print.C ${CONV}.C main.C WToF.C localTime.C BC.C ${TIME_DIS}.C minOverScalarField.C calDtGlobal.C
+TIME_DIS1 = RungeKuttaTime
+TIME_DIS2 = EulerFTime
+OBJS = init.o print.o ${CONV}.o main.o WToF.o localTime.o BC.o ${TIME_DIS1}.o ${TIME_DIS2}.o calDtGlobal.o
+SRCS = init.C print.C ${CONV}.C main.C WToF.C localTime.C BC.C ${TIME_DIS2}.C ${TIME_DIS2}.C calDtGlobal.C
 LIBS = -lm
 EXE  = out
 CFLG = -g -Wall -std=c++11	
@@ -35,8 +35,11 @@ BC.o : BC.C main.H
 minOverScalarField.o : minOverScalarField.C main.H
 	g++ ${CFLG} -c minOverScalarField.C
 
-${TIME_DIS}.o : ${TIME_DIS}.C main.H
-	g++ ${CFLG}	-c ${TIME_DIS}.C
+${TIME_DIS1}.o : ${TIME_DIS1}.C main.H
+	g++ ${CFLG}	-c ${TIME_DIS1}.C
+
+${TIME_DIS2}.o : ${TIME_DIS2}.C main.H
+	g++ ${CFLG}	-c ${TIME_DIS2}.C
 
 main.o    : $(SRCS) main.H 
 	g++  ${CFLG} -c main.C
