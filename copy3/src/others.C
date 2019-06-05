@@ -1,5 +1,5 @@
 #include "main.H"
-//			     0方向梯度边界条件, 边界上的点直接等于内部的点                      //
+//			     初始化流场,包括虚网格                      //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 void init(double W[][3])
 {
@@ -29,7 +29,7 @@ void zeroGradBC(double W[][3])
     for (int k = 0; k < 3; k++)
     {
         W[0][k] = W[1][k];
-        W[maxSpace][k] = W[maxSpace - 2][k];
+        W[maxSpace-1][k] = W[maxSpace - 2][k];
         W[maxSpace][k] = W[maxSpace - 1][k];
     }
 }
@@ -40,7 +40,7 @@ void zeroGradBC(double W[][3])
 #include<iomanip>
 void print(const double W[][3])
 {
-
+/*
     ofstream foutAll("data/result.dat");
     foutAll.setf(ios::left);
     foutAll.precision(4);
@@ -50,6 +50,12 @@ void print(const double W[][3])
     {
         foutAll<<i*dx<<'\t'<<W[i][0]<<'\t'<<W[i][1]/W[i][0]<<'\t'<<calPressure(W[i])<<endl;
     } 
+*/
+    FILE * fout;
+    fout=fopen("data/result.dat","w");
+    fprintf(fout, "x\trho\tu\tp\n" );
+    for(unsigned i=0; i<=maxSpace+2; i++)
+        fprintf(fout, "%.4f\t%.4f\t%.4f\t%.4f\n", i*dx-1, W[i][0], W[i][1]/W[i][0],calPressure(W[i]) );
 }
 
 //			     W转化为F                      //

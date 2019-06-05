@@ -7,7 +7,7 @@ using namespace std;
 
 //						declear the constants								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-	const int maxSpace= 100;
+	const int maxSpace= 1000;
 	const double physicalSpace = 2;
 	const double dx = physicalSpace / maxSpace;
 
@@ -36,7 +36,7 @@ inline  double soundVelocity(const double W[3])
     return sqrt( GAMMA * calPressure(W)/W[0] );
 }
 
-inline  double lambda(const double W[3])
+inline  double calLambda(const double W[3])
 {
     return fabs(W[1]/W[0]) + soundVelocity(W);
 }
@@ -53,13 +53,13 @@ inline double WToVelocity(const double vector[3])
 
 inline double localTime(const double W[][3], const int I)
 {
-    return CFL*dx/lambda(W[I]);
+    return CFL*dx/calLambda(W[I]);
 }
 
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-void scalarJSTConv(const double W[][3],  double R[][3]);
+void scalarJSTConv(const double W[][3],  double R[][3], const int I);
 void RungeKuttaTime(double W[][3], const double dt, double R[][3]);
 void EulerFTime(double W[][3], const double dt, double R[][3]);
 void zeroGradBC(double W[][3]);
@@ -69,6 +69,5 @@ void WToF(double const W[3], double F[3]);
 void print( const double W[][3]);
 void printW(const double W[][3]);
 void printF(const double W[][3]);
-double minOverScalarField(double scalarField[]);
 double calDtGlobal(double W[][3]);
 #endif
