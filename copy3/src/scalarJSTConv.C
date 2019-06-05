@@ -17,30 +17,22 @@ void scalarJSTConv(const double W[][3], double R[][3], const int I)
 
     //然后计算人工黏性D, 计算face上所用的流动变量Wf(中心型简单算数平均)
     double D[3], Wf[3];
-    for (int k = 0; k < 3; k++)
-    {
-        D[k] = Lambda_f *
-               (Ep2 * (W[I + 1][k] - W[I][k]) - Ep4 * (W[I + 2][k] - 3 * W[I + 1][k] + 3 * W[I][k] - W[I - 1][k]));
-
-        Wf[k] = 0.5 * (W[I][k] + W[I + 1][k]);
-    }
-
     double F_left[3];
     double static F_right[3] = {0, 1, 0}; //static变量会保存上一次调用函数时F_right的值
     //本文Euler方程中, 通量流出表面应该为负, 所以通量F应该取向内为正
     //上一空间点的右面通量恰好为这一点的左通量F_left[],取向右为正,它应该是负方向.
-    //F_right被初始化为0,1,0, ;所以经过下面的语句,Fleft在第一个网格就是0,-1,0
     for (int k = 0; k < 3; k++)
     {
+        D[k] =0;// Lambda_f *(Ep2 * (W[I + 1][k] - W[I][k]) - Ep4 * (W[I + 2][k] - 3 * W[I + 1][k] + 3 * W[I][k] - W[I - 1][k]));
+
+        Wf[k] = 0.5 * (W[I][k] + W[I + 1][k]);
+
         F_left[k] = -F_right[k];
     }
 
     //face上的流动变量Wf转换为通量F_right, 从而更新了这一步的F_right
-    const double u = Wf[1] / Wf[0];
-    F_right[0] = Wf[1] - D[1];
-    F_right[1] = Wf[0] * u * u + p0 - D[2];
-    F_right[2] = (Wf[2] + p0) * u - D[3];
-
+    WToF(Wf, F_right);
+    
     //最后算出残差R, 残差是通量在所有表面的和
     for (int k = 0; k < 3; k++)
     {
