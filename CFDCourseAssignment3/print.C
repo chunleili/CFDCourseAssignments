@@ -11,7 +11,7 @@ void print(const double W[][3])
     foutAll<<"x"<<'\t'<<"rho"<<'\t'<<"u"<<'\t'<<"p"<<endl;
     for (int i = 0; i <= maxSpace+2; i++)
     {
-        foutAll<<i*dx<<'\t'<<W[i][0]<<'\t'<<W[i][1]/W[i][0]<<'\t'<<calPressure(W[i])<<endl;
+        foutAll<<i*dx-1.0<<'\t'<<W[i][0]<<'\t'<<W[i][1]/W[i][0]<<'\t'<<calPressure(W[i])<<endl;
     } 
 }
 

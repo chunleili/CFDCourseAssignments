@@ -2,7 +2,7 @@
 
 void scalarJSTConv(const double W[][3],  double R[][3])
 {
-    const double k2 = 0.5, k4 = 0.015625;  //JST法中的常数 
+    const double k2 = 0.5, k4 = 0.5;  //JST法中的常数 
     for (int I = 1; I <= maxSpace; I++)
     {
         //先定义一些系数, Lambda和Ep2, Ep4, 用于计算D[k]

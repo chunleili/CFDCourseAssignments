@@ -1,0 +1,19 @@
+{
+    "files.associations": {
+        "BC.C": "cpp",
+        "others.C": "cpp",
+        "print.C": "cpp",
+        "RoeConv.C": "cpp",
+        "WToF.C": "cpp",
+        "toolFuncs.C": "cpp",
+        "scalarJSTConv.C": "cpp",
+        "minOverScalarField.C": "cpp",
+        "MacCormackConv.C": "cpp",
+        "localTime.C": "cpp",
+        "calDtGlobal.C": "cpp",
+        "init.C": "cpp",
+        "EulerFTime.C": "cpp",
+        "main.C": "cpp",
+        "RungeKuttaTime.C": "cpp"
+    }
+}

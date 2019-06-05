@@ -13,6 +13,9 @@ void RungeKuttaTime(double W[][3], const double dt, double R[][3])
             W0[I][k] = W[I][k];
         }
     }
+    //print(W0);
+    //exit(0);
+    //后面每一步都先计算残差, 后根据RK公式更新W
     scalarJSTConv(W,  R);
     for (int I = 1; I <= maxSpace; I++)
     {

@@ -5,12 +5,6 @@
 #include<iostream>
 using namespace std;
 
-//#define CONV scalarJSTConv
-//  #define CONV MacCormackConv
-//  #define CONV RoeConv
-//#define TIME_DIS EulerFTime
-//#define TIME_DIS RungeKuttaTime
-
 //						declear the constants								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 	const int maxSpace= 100;
@@ -19,16 +13,16 @@ using namespace std;
 
 	const int maxTime = 100000;
 	const double stopTime = 0.1;
-	const double CFL=1.5;
+	const double CFL=0.4;
 
 	const double GAMMA = 1.4;
 
 //						declear the inline funcs							 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-inline double calPressure(const double vec[3])
+inline double calPressure(const double W[])
 {
-	double u = vec[1]/vec[0];
-    return (GAMMA-1) * vec[0] *( vec[2]/vec[0] - 0.5* u * u );
+	double u = W[1]/W[0];
+    return (GAMMA-1) * W[0] *( W[2]/W[0] - 0.5* u * u );
 }
 
 inline  double max(const double a, const double b)
@@ -55,6 +49,11 @@ inline double WToRho(const double vector[3])
 inline double WToVelocity(const double vector[3])
 {
 	return vector[1]/vector[0];
+}
+
+inline double localTime(const double W[][3], const int I)
+{
+    return CFL*dx/lambda(W[I]);
 }
 
 //						define the func										 //
