@@ -1,0 +1,5 @@
+*.o
+*.ipch
+*.bin
+jameson/*
+*.out
