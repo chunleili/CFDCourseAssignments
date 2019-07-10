@@ -3,4 +3,4 @@
 *.bin
 jameson/*
 *.out
-.vscode/*
+*.json
