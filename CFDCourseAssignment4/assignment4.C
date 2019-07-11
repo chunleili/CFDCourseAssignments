@@ -1,4 +1,4 @@
-/***************************include  **************************/
+/***************************include & namespace  **************************/
 #include<iostream>
 #include<fstream>
 #include<string>
@@ -7,6 +7,11 @@
 #include<cmath>
 #include<cstdlib>
 using namespace std;
+/***************************define the consts ********************************/
+
+const double stop=1.0;
+const int stopStep=1000;
+const int maxI=400, maxJ=100;
 
 /***************************define the type ********************************/
 typedef struct xy
@@ -16,8 +21,8 @@ typedef struct xy
     double y=0;
 }xy;
 
-typedef vector<vector<xy> > meshPoint;
-typedef vector<vector<vector<double> > > field;
+typedef xy MeshPoint[maxI+1][maxJ+1];
+typedef double Field[maxI+1][maxJ+1][5];
 
 /***************************declare the funcs  **************************/
 void genMesh();
@@ -25,21 +30,14 @@ void init1();
 void init2();
 double localTimeStepping();
 void solve();
-void print(field aField, string filename);
-
-/***************************define the consts ********************************/
-
-const double stop=1.0;
-const int stopStep=1000;
-const int maxI=400, maxJ=100;
-
+void print(Field aField, string filename);
 
 /********************************main()**************************************/
 int main()
 {  
     genMesh();              //生成网格
     
-    field Q(maxI, vector<vector<double> >(maxJ), vector<vector<vector<double> > >(5)), F;
+    Field Q, F;
     
     cout<<"please input case Number: 1 for inlet 1.5Ma; 2 for inlet 1.8Ma"<<endl;
     int caseNo;
@@ -66,12 +64,12 @@ int main()
 void genMesh()
 {
     const int block1=100, block2=100, block3=maxI-block1-block2;
-    const double dx=1/400;
+    const double dx=1.0/500;
 
-    meshPoint mesh(maxI+1, vector<xy>(maxJ+1));
+    MeshPoint mesh;
 
     double dy=0.3/maxJ;
-    for(int i=0; i<=block1; i++)
+    for(int i=0; i<block1; i++)
     {
         for(int j=0;j<=maxJ; j++)
         {
@@ -80,7 +78,7 @@ void genMesh()
         }
     }
     
-    for(int i=block1+1; i<=block1+block2; i++)
+    for(int i=block1; i<block1+block2; i++)
     {
         double h=0.25*i*dx-0.05;
         dy=(0.3-h)/maxJ;
@@ -92,16 +90,20 @@ void genMesh()
     }
 
     dy=(0.3-0.05)/maxJ;
-    for(int i=block1+block2+1; i<=maxI; i++)
+    for(int i=block1+block2; i<=maxI; i++)
     {
         for(int j=0;j<=maxJ; j++)
         {
-            mesh[i][j].x=0.05+i*dx;
-            mesh[i][j].y=j*dy;
+            mesh[i][j].x=i*dx;
+            mesh[i][j].y=0.05+j*dy;
         }
     }
 
-    fstream fout("mesh.txt");
+    fstream fout("mesh.dat");
+    fout
+	<<"Title=\"Mesh\""<<endl
+	<<"Variables=\"x\",\"y\""<<endl
+	<<"Zone i="<<maxI+1<<", j="<<maxJ+1<<", f=point"<<endl;
     for(int j=0; j<=maxJ; j++)
     {
         for(int i=0; i<=maxI; i++)
@@ -133,14 +135,18 @@ void solve()
 
 }
 
-void print(field aField, string filename)
+void print(Field aField, string filename)
 {
     fstream fout(filename);
     for(int j=0; j<=maxJ; j++)
     {
         for(int i=0; i<=maxI; i++)
         {
-            //fout<< aField[i][j].x<<" "<<aField[i][j].y<<endl;
+            for(int k: aField[i][j])
+                fout<< aField[i][j][k]<<" ";
+            fout<<endl;
         }
     }
 }
+
+/*******************other utility funcs*****************/
