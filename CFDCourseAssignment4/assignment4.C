@@ -1,12 +1,25 @@
-/***************************include & funcs declare **************************/
+/***************************include  **************************/
 #include<iostream>
 #include<fstream>
+#include<string>
 #include<vector>
 #include<utility>
 #include<cmath>
 #include<cstdlib>
 using namespace std;
 
+/***************************define the type ********************************/
+typedef struct xy
+{
+    public:
+    double x=0;
+    double y=0;
+}xy;
+
+typedef vector<vector<xy> > meshPoint;
+typedef vector<vector<vector<double> > > field;
+
+/***************************declare the funcs  **************************/
 void genMesh();
 void init1();
 void init2();
@@ -20,22 +33,13 @@ const double stop=1.0;
 const int stopStep=1000;
 const int maxI=400, maxJ=100;
 
-/***************************define the type ********************************/
-typedef struct xy
-{
-    public:
-    double x=0;
-    double y=0;
-}xy;
 
-typedef vector<vector<xy> > meshPoint;
-typedef vector<vector<double> > field;
 /********************************main()**************************************/
 int main()
 {  
     genMesh();              //生成网格
     
-    field Q, F;
+    field Q(maxI, vector<vector<double> >(maxJ), vector<vector<vector<double> > >(5)), F;
     
     cout<<"please input case Number: 1 for inlet 1.5Ma; 2 for inlet 1.8Ma"<<endl;
     int caseNo;
@@ -54,7 +58,7 @@ int main()
         solve();                  //求解
     }
 
-    print(Q,"Q.txt");                //打印 
+    //print(Q,"Q.txt");                //打印 
     return 0;
 }
 
