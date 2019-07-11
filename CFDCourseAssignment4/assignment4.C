@@ -14,15 +14,16 @@ const int stopStep=1000;
 const int maxI=400, maxJ=100;
 
 /***************************define the type ********************************/
-typedef struct xy
+typedef struct XY
 {
     public:
     double x=0;
     double y=0;
-}xy;
+}XY;
 
-typedef xy MeshPoint[maxI+1][maxJ+1];
-typedef double Field[maxI+1][maxJ+1][5];
+typedef XY MeshPoint[maxI+1][maxJ+1];        //用于存储网格点坐标
+typedef double Field[maxI+1][maxJ+1][4];     //向量场,用于定义Q对象
+typedef double Tensor[maxI+1][maxJ+1][4][2]; //张量场,用于定义F对象
 
 /***************************declare the funcs  **************************/
 void genMesh();
@@ -32,14 +33,18 @@ double localTimeStepping();
 void solve();
 void print(Field aField, string filename);
 
+//utility functions
+inline double calMa(double T, double magU);
+inline double calSoundSpeed(double T);
+
 /********************************main()**************************************/
 int main()
 {  
     genMesh();              //生成网格
     
-    Field Q, F;
-    
-    cout<<"please input case Number: 1 for inlet 1.5Ma; 2 for inlet 1.8Ma"<<endl;
+    Field Q;
+    Tensor F;
+    cout<<"please input case Number: 1 for inlet 1.8Ma; 2 for 1.5Ma"<<endl;
     int caseNo;
     cin>>caseNo;
     if(caseNo==1)       init1(); //设置初场,init1表示入口1.5Ma, init2()表示入口1.8Ma
@@ -116,7 +121,7 @@ void genMesh()
 
 void init1()
 {
-
+    
 }
 
 void init2()
@@ -150,3 +155,12 @@ void print(Field aField, string filename)
 }
 
 /*******************other utility funcs*****************/
+inline double calMa(double T, double magU)
+{
+    return magU/(20.045*sqrt(T));
+}
+
+inline double calSoundSpeed(double T)
+{
+    return 20.045*sqrt(T);
+}
