@@ -1,16 +1,8 @@
 #ifndef main_H
 #define main_H
-
 #include<cmath>
 #include<iostream>
 using namespace std;
-
-//#define CONV scalarJSTConv
-//  #define CONV MacCormackConv
-//  #define CONV RoeConv
-//#define TIME_DIS EulerFTime
-//#define TIME_DIS RungeKuttaTime
-
 //						declear the constants								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 	const int maxSpace= 1000;
@@ -36,7 +28,6 @@ inline  double max(const double a, const double b)
     return a>b?a:b;
 }
 
-//计算声速c
 inline  double soundVelocity(const double W[3])
 {
     return sqrt( GAMMA * calPressure(W)/W[0] );
@@ -70,6 +61,5 @@ void WToF(double const W[3], double F[3]);
 void print( const double W[][3]);
 void printW(const double W[][3]);
 void printF(const double W[][3]);
-double minOverScalarField(double scalarField[]);
 double calDtGlobal(double W[][3]);
 #endif

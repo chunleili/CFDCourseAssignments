@@ -34,7 +34,13 @@
         "toolFuncs.C": "cpp",
         "calDtGlobal.C": "cpp",
         "others.C": "cpp",
-        "try.C": "cpp"
+        "try.C": "cpp",
+        "JST_RK.C": "cpp",
+        "solver1_JST_RK.C": "cpp",
+        "solver2_MacCormack.C": "cpp",
+        "Roe.C": "cpp",
+        "solver3_Roe.C": "cpp",
+        "solver1_JST.C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

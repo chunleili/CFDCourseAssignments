@@ -1,5 +1,4 @@
-#include"main.H"
-
+#include<main.H>
 void MacCormackConv( double U[][3], const double dt)
 {
     const double r = dt/dx;

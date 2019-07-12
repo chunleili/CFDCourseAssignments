@@ -1,5 +1,5 @@
-#include"main.H"
-#include<cstdlib>
+#include "main.H"
+
 //一阶精度的三阶显式RungeKutta法
 void RungeKuttaTime(double W[][3], const double dt, double R[][3])
 {
@@ -13,8 +13,6 @@ void RungeKuttaTime(double W[][3], const double dt, double R[][3])
             W0[I][k] = W[I][k];
         }
     }
-    //print(W0);
-    //exit(0);
     //后面每一步都先计算残差, 后根据RK公式更新W
     scalarJSTConv(W,  R);
     for (int I = 1; I <= maxSpace; I++)
