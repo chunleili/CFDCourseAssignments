@@ -4,7 +4,6 @@
 using namespace std;
 /***************************define the consts ********************************/
 
-const double STOP_TIME=1.0;
 const int STOP_STEP=100;
 const int maxI=400, maxJ=100;
 const double RESIDUAL_LIMIT=1e-3;

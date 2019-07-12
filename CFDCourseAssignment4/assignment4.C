@@ -5,7 +5,7 @@
 #include<fstream>
 /***************************declare static funcs  **************************/
 static inline void chooseCaseAndInit();
-static inline void runInfo(double t, double dt, int step, double residual);
+static inline void runInfo(int step, double residual);
 static inline void ifConverge(double residual, int step, Field Q);
 
 /********************************main()**************************************/
@@ -18,13 +18,13 @@ int main()
 
     chooseCaseAndInit();
 
-    int step=0; double residual=0.0; double t=0.0;
-    for (double dt=0.001; t <= STOP_TIME && step<=STOP_STEP; t+=dt, step++)
+    double residual=1.0;
+    for (int step=0;  step<=STOP_STEP; step++)
     {
         //dt = localTime();       //当地时间步法，注意取全域最大当地时间步
         solve();                  //求解
 
-        runInfo(t,dt,step, residual);
+        runInfo(step, residual);
         ifConverge(residual, step, Q);
     }
     return 0;
@@ -107,7 +107,6 @@ double localTime()
 
 void print(Field aField, fstream &fout)
 {
-    
     for(int j=0; j<=maxJ; j++)
     {
         for(int i=0; i<=maxI; i++)
@@ -117,19 +116,23 @@ void print(Field aField, fstream &fout)
             fout<<endl;
         }
     }
-    cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 }
 
 /********************************static funcs**************************************/
-static inline void runInfo(double t, double dt, int step, double residual)
+static inline void runInfo(int step, double residual)
 {
+    cout.setf(ios::left);
+    cout.width(15);
+    cout.precision(6);
     cout<<"step= "   <<step
-        <<"\tt="       <<t 
-		<<"\tdt= "     <<dt
         <<"\tresidual="<<residual
         <<endl;
+    
     fstream fout("residual.dat");
-    fout<<"\tt="        <<t 
+    fout.setf(ios::left);
+    fout.width(15);
+    fout.precision(6);
+    fout<<"\tstep="     <<step 
         <<"\tresidual=" <<residual
         <<endl;
 }
@@ -146,17 +149,15 @@ static inline void ifConverge(double residual, int step, Field Q)
 	    	<<"History of residual has been written into \"residual.dat\"";
         fstream fout("result.dat");
         print(Q, fout);
+        cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	    exit(0);
-        
     }
     else if(step>=STOP_STEP)
 	{
-		cout<<"\nFail to converge! in "<<STOP_STEP<<" times\n"
+		cout<<"\nFail to converge! in "<<STOP_STEP<<" steps\n"
 		<<"Final residual ="<<residual<<"\n\n\n";
         cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 	}
-    cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
-
 }
 
 static inline void chooseCaseAndInit()
