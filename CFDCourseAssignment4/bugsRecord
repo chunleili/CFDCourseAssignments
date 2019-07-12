@@ -6,3 +6,9 @@ use of deleted function ‘std::basic_fstream<_CharT, _Traits>::basic_fstream(co
 fix:
 void print(Field aField, fstream )改为
 void print(Field aField, fstream &)
+
+bug2:
+ fatal error: main.H: No such file or directory
+fix:
+    改#include<main.H>为
+    #include"main.H"

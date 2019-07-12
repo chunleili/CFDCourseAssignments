@@ -1,41 +1,12 @@
 /***************************include & namespace  **************************/
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<cmath>
+#include"main.H"
+#include<cstdlib>
 #include<ctime>
-using namespace std;
-/***************************define the consts ********************************/
-
-const double STOP_TIME=1.0;
-const int STOP_STEP=1000;
-const int maxI=400, maxJ=100;
-const int RESIDUAL_LIMIT=1e-3;
-
-/***************************define the type ********************************/
-typedef struct XY
-{
-    public:
-    double x=0;
-    double y=0;
-}XY;
-
-typedef XY MeshPoint[maxI+1][maxJ+1];        //用于存储网格点坐标
-typedef double Field[maxI+1][maxJ+1][4];     //向量场,用于定义Q对象
-typedef double Tensor[maxI+1][maxJ+1][4][2]; //张量场,用于定义F对象
-
-/***************************declare the funcs  **************************/
-void genMesh();
-void init1();
-void init2();
-double localTimeStepping();
-void solve();
-void print(Field aField, fstream &);
-
-//utility functions
-inline void runInfo(double t, double dt, int step, double residual);
-inline double calMa(double T, double magU);
-inline double calSoundSpeed(double T);
+#include<fstream>
+/***************************declare static funcs  **************************/
+static inline void chooseCaseAndInit();
+static inline void runInfo(double t, double dt, int step, double residual);
+static inline void ifConverge(double residual, int step, Field Q);
 
 /********************************main()**************************************/
 int main()
@@ -45,46 +16,22 @@ int main()
     Field Q;
     Tensor F;
 
-    cout<<"please input case Number: 1 for inlet 1.8Ma; 2 for 1.5Ma"<<endl;
-    int caseNo; cin>>caseNo;
-    switch(caseNo)
-    {
-        case (1): init1(); break; //设置初场,init1表示入口1.5Ma, init2()表示入口1.8Ma
-        case (2): init2(); break;
-        default: cout<<"wrong number! exit!"<<endl; return 1;
-    }
-    
+    chooseCaseAndInit();
+
     int step=0; double residual=0.0; double t=0.0;
     for (double dt=0.001; t <= STOP_TIME && step<=STOP_STEP; t+=dt, step++)
     {
-        dt = localTimeStepping(); //当地时间步法，注意取全域最大当地时间步
+        //dt = localTime();       //当地时间步法，注意取全域最大当地时间步
         solve();                  //求解
 
         runInfo(t,dt,step, residual);
-        if(residual<RESIDUAL_LIMIT)
-        {
-            cout<<"\nConverged!"<<endl
-		    	<<"\nmaxI= "<<maxI<<"\tmaxJ= "<<maxJ<<endl
-		    	<<"Final residual ="<<residual<<endl
-		    	<<"Loop times = "<<step<<endl
-		    	<<"Final field has been written into \"result.dat\" \n"
-		    	<<"History of residual has been written into \"residual.plt\"";
-            fstream fout("result.txt");
-    	    print(Q, fout);
-		    break;
-        }
+        ifConverge(residual, step, Q);
     }
-
-    if(t >= STOP_TIME || step>=STOP_STEP)
-	{
-		cout<<"\nFail to converge! in "<<step<<" times\n"
-		<<"Final residual ="<<residual<<"\n\n\n";
-	}
-    cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
     return 0;
 }
 
 /********************************funcs define**************************************/
+/********************************genMesh()**************************************/
 void genMesh()
 {
     const int block1=100, block2=100, block3=maxI-block1-block2;
@@ -138,7 +85,7 @@ void genMesh()
     cout<<"mesh is written in \"mesh.dat\""<<endl;
 
 }
-
+/********************************init1()**************************************/
 void init1()
 {
     
@@ -149,16 +96,14 @@ void init2()
 
 }
 
-double localTimeStepping()
+
+/********************************other funcs**************************************/
+double localTime()
 {
     double globalTime=0;
     return globalTime;
 }
 
-void solve()
-{
-
-}
 
 void print(Field aField, fstream &fout)
 {
@@ -175,20 +120,53 @@ void print(Field aField, fstream &fout)
     cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
 }
 
-/*******************other utility funcs*****************/
-static inline void runInfo(double t, double dt, int step)
+/********************************static funcs**************************************/
+static inline void runInfo(double t, double dt, int step, double residual)
 {
-    cout<<"\tstep= "<<step
-        <<"\tt="    <<t 
-		<<"\tdt= "  <<dt<<endl;
+    cout<<"step= "   <<step
+        <<"\tt="       <<t 
+		<<"\tdt= "     <<dt
+        <<"\tresidual="<<residual
+        <<endl;
+    fstream fout("residual.dat");
+    fout<<"\tt="        <<t 
+        <<"\tresidual=" <<residual
+        <<endl;
 }
 
-inline double calMa(double T, double magU)
+static inline void ifConverge(double residual, int step, Field Q)
 {
-    return magU/(20.045*sqrt(T));
+    if(residual<RESIDUAL_LIMIT)
+    {
+        cout<<"\nConverged!"<<endl
+	    	<<"\nmaxI= "<<maxI<<"\tmaxJ= "<<maxJ<<endl
+	    	<<"Final residual ="<<residual<<endl
+	    	<<"Loop times = "<<step<<endl
+	    	<<"Final field has been written into \"result.dat\" \n"
+	    	<<"History of residual has been written into \"residual.dat\"";
+        fstream fout("result.dat");
+        print(Q, fout);
+	    exit(0);
+        
+    }
+    else if(step>=STOP_STEP)
+	{
+		cout<<"\nFail to converge! in "<<STOP_STEP<<" times\n"
+		<<"Final residual ="<<residual<<"\n\n\n";
+        cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
+	}
+    cout<<"\nWall time = "<<(double)clock()/CLOCKS_PER_SEC<<" s"<<endl;
+
 }
 
-inline double calSoundSpeed(double T)
+static inline void chooseCaseAndInit()
 {
-    return 20.045*sqrt(T);
+    cout<<"please input case Number: 1 for inlet 1.8Ma; 2 for 1.5Ma"<<endl;
+    int caseNo; cin>>caseNo;
+    switch(caseNo)
+    {
+        case (1): init1(); break; //设置初场,init1表示入口1.5Ma, init2()表示入口1.8Ma
+        case (2): init2(); break;
+        default: cout<<"wrong number! exit!"<<endl; exit(1);
+    }
 }

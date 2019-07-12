@@ -40,6 +40,9 @@
         "tuple": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "genMesh.C": "cpp",
+        "init.C": "cpp",
+        "solve.C": "cpp"
     }
 }
