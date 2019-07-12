@@ -1,4 +1,5 @@
 #include "main.H"
+void scalarJSTConv(const double W[][3],  double R[][3]);
 
 //一阶精度的三阶显式RungeKutta法
 void solver1(double W[][3], const double dt, double R[][3])
@@ -89,6 +90,20 @@ void scalarJSTConv(const double W[][3],  double R[][3])
         for (int k = 0; k < 3; k++)
         {
             R[I][k] = F_left[k] + F_right[k] - D[k];
+        }
+    }
+}
+
+//欧拉法时间离散,这里不用,代码先存着
+void EulerFTime(double W[][3], const double dt, double R[][3])
+{
+    scalarJSTConv(W, R);
+
+    for (int I = 1; I <= maxSpace; I++)
+    {
+        for (int k = 0; k < 3; k++)
+        {
+            W[I][k] = dt * (-1 / dx) * R[I][k] + W[I][k];
         }
     }
 }

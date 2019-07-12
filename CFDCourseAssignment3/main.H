@@ -1,7 +1,6 @@
 #ifndef main_H
 #define main_H
 #include<cmath>
-#include<iostream>
 using namespace std;
 //						declear the constants								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -51,15 +50,9 @@ inline double WToVelocity(const double vector[3])
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-void scalarJSTConv(const double W[][3],  double R[][3]);
-void RungeKuttaTime(double W[][3], const double dt, double R[][3]);
+void solver1(double W[][3], const double dt, double R[][3]);
 void EulerFTime(double W[][3], const double dt, double R[][3]);
 void zeroGradBC(double W[][3]);
-void init(double W[][3]);
-double localTime(const double W[][3],const int I);
 void WToF(double const W[3], double F[3]);
-void print( const double W[][3]);
-void printW(const double W[][3]);
-void printF(const double W[][3]);
-double calDtGlobal(double W[][3]);
+
 #endif

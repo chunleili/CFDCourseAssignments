@@ -1,4 +1,5 @@
-OBJS = $(wildcard *.o)
+OBJS = main.o solver1_JST.o solver2_MacCormack.o solver3_Roe.o
+#$(wildcard *.o)
 LIBS = -lm
 EXE  = a.out
 CFLG = -g -Wall -std=c++11	

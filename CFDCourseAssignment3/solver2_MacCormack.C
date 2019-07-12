@@ -1,4 +1,4 @@
-#include<main.H>
+#include"main.H"
 void MacCormackConv( double U[][3], const double dt)
 {
     const double r = dt/dx;
@@ -34,7 +34,7 @@ void MacCormackConv( double U[][3], const double dt)
     
     for(i=0;i<=maxSpace;i++)
     {
-        UToF(U[i], Ef[i]);
+        WToF(U[i], Ef[i]);
     }
 
     //预报

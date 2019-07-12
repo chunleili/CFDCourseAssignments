@@ -1,5 +1,19 @@
 #include "main.H"
 #include <ctime>
+#include <fstream>
+#include <iostream>
+#define solver solver1
+//solver1是Jameson格式搭配3阶荣格库塔;
+//solver2是MacCormack法
+//solver3是Roe格式搭配3阶荣格库塔法
+
+void init(double W[][3]);
+double localTime(const double W[][3],const int I);
+void print( const double W[][3]);
+void printW(const double W[][3]);
+void printF(const double W[][3]);
+double calDtGlobal(double W[][3]);
+
 int main()
 {
     double W[maxSpace + 3][3] , R[maxSpace + 3][3];
@@ -11,9 +25,7 @@ int main()
     for (double t = 0; t <= stopTime && timeStep<100 ; t += dtGlobal)
     {
         dtGlobal=calDtGlobal(W);
-        solver3(W, dtGlobal, R);//solver1是Jameson格式搭配3阶荣格库塔; 
-                                //solver2是MacCormack法
-                                //solver3是Roe格式搭配3阶荣格库塔法
+        solver(W, dtGlobal, R);
         
         timeStep++;
         cout << "dtGlobal= " << dtGlobal;
@@ -124,17 +136,4 @@ double calDtGlobal(double W[][3])
         }
     }
     return min;
-}
-
-void EulerFTime(double W[][3], const double dt, double R[][3])
-{
-    scalarJSTConv(W, R);
-
-    for (int I = 1; I <= maxSpace; I++)
-    {
-        for (int k = 0; k < 3; k++)
-        {
-            W[I][k] = dt * (-1 / dx) * R[I][k] + W[I][k];
-        }
-    }
 }
