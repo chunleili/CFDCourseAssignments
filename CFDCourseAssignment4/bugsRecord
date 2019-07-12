@@ -1,0 +1,8 @@
+bug1:
+在定义print函数的时候,文件输出流没有定义成引用导致以下报错:
+
+use of deleted function ‘std::basic_fstream<_CharT, _Traits>::basic_fstream(const std::basic_fstream<_CharT, _Traits>&) [with _CharT = char; _Traits = std::char_traits<char>]’
+
+fix:
+void print(Field aField, fstream )改为
+void print(Field aField, fstream &)
