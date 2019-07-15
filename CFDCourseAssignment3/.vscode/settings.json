@@ -41,7 +41,8 @@
         "Roe.C": "cpp",
         "solver3_Roe.C": "cpp",
         "solver1_JST.C": "cpp",
-        "Savings.C": "cpp"
+        "Savings.C": "cpp",
+        "Savings(保存删除的代码).C": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "C_Cpp.dimInactiveRegions": false

@@ -18,12 +18,6 @@ main.o    : $(SRCS) main.H
 solver3_Roe.o: solver3_Roe.C main.H
 	g++  ${CFLG} -c solver3_Roe.C
 
-.PHONY:clean  clean_data clean_log clean_all
+.PHONY:clean
 clean      :
-	rm -rf *.o 
-clean_data :
-	rm -rf data/*
-clean_log  :
-	rm -rf log/*
-clean_all  :
-	rm -rf data/* log/* *.o ${EXE}
+	rm -rf *.dat log/* *.o ${EXE}

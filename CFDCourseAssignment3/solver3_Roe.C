@@ -12,8 +12,8 @@ void solver3(Field W, const double dt)
     Field Fc;
     const double alpha[3]={0.1481, 0.4, 1.0};
     //先定义W0,用于保存原始的W
-    double W0[maxSpace+3][3];
-    for (int I = 1; I <= maxSpace; I++)
+    Field W0;
+    for (int I = 0; I <= maxSpace; I++)
         for (int k = 0; k < 3; k++)
             W0[I][k] = W[I][k];
     
@@ -22,7 +22,7 @@ void solver3(Field W, const double dt)
     for(int a=0;a<=2;a++)   //a代表荣格库塔法的每一步
     {
         
-        for (int I = 1; I <= maxSpace; I++)
+        for (int I = 0; I <= maxSpace; I++)
         {  
             //利用Roe格式计算通量
             Roe(W, I, Fc);

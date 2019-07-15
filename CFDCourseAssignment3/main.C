@@ -49,7 +49,7 @@ void init(Field W)
         W[i][2]=p1/(GAMMA-1) + 0.5*rho1*u1*u1;
     }
 
-    for(int i=maxSpace/2; i<= maxSpace+2; i++)
+    for(int i=maxSpace/2; i<= maxSpace; i++)
     {
         W[i][0]=rho2;
         W[i][1]=u2*rho2;
@@ -80,13 +80,15 @@ void WToF(Vector W, Vector F)
 void print(const Field W)
 {
 
-    ofstream foutAll("data/result.dat");
+    ofstream foutAll("result.dat");
+    cout<<"\nprint the rho, u, p, in the \"result.dat\", first column is distance"<<endl;
     foutAll.setf(ios::left);
-    foutAll.precision(4);
-    cout<<"\nprint the rho, u, p, in the data/result.dat, first column is distance"<<endl;
+    foutAll.width(7);
     foutAll<<"x"<<'\t'<<"rho"<<'\t'<<"u"<<'\t'<<"p"<<endl;
-    for (int i = 0; i <= maxSpace+2; i++)
+    for (int i = 0; i <= maxSpace; i++)
     {
+        foutAll.width(7);
+        foutAll.precision(5);
         foutAll<<i*dx<<'\t'<<W[i][0]<<'\t'<<W[i][1]/W[i][0]<<'\t'<<calPressure(W[i])<<endl;
     } 
 }
