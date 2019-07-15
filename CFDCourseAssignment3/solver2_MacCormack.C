@@ -1,3 +1,5 @@
+#ifdef SOLVER2
+
 #include"main.H"
 void MacCormackConv( double U[][3], const double dt)
 {
@@ -64,3 +66,5 @@ void MacCormackConv( double U[][3], const double dt)
         U[maxSpace][k]=U[maxSpace-1][k];
     }
 }
+
+#endif

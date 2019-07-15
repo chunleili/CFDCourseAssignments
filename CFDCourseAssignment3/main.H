@@ -14,17 +14,18 @@ using namespace std;
 
 	const double GAMMA = 1.4;
 
+//						define the types								 //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //	
+typedef double Field[maxSpace+1][3];
+typedef double ScalarField[maxSpace+1];
+typedef double Vector[3];
+
 //						declear the inline funcs							 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 inline double calPressure(const double W[])
 {
 	double u = W[1]/W[0];
     return (GAMMA-1) * W[0] *( W[2]/W[0] - 0.5* u * u );
-}
-
-inline  double max(const double a, const double b)
-{
-    return a>b?a:b;
 }
 
 inline  double soundVelocity(const double W[3])
@@ -37,22 +38,10 @@ inline  double lambda(const double W[3])
     return fabs(W[1]/W[0]) + soundVelocity(W);
 }
 
-inline double WToRho(const double vector[3])
-{
-	return vector[0];
-}
-
-inline double WToVelocity(const double vector[3])
-{
-	return vector[1]/vector[0];
-}
 
 //						define the func										 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-void solver1(double W[][3], const double dt, double R[][3]);
-void EulerFTime(double W[][3], const double dt, double R[][3]);
-void zeroGradBC(double W[][3]);
-void WToF(double const W[3], double F[3]);
+void zeroGradBC(Field W);
+void WToF(Vector W, Vector F);
 
 #endif

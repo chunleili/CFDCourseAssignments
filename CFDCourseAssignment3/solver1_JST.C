@@ -1,3 +1,5 @@
+#ifdef SOLVER1
+
 #include "main.H"
 void scalarJSTConv(const double W[][3],  double R[][3]);
 
@@ -107,3 +109,5 @@ void EulerFTime(double W[][3], const double dt, double R[][3])
         }
     }
 }
+
+#endif

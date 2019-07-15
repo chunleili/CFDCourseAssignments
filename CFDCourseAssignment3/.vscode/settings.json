@@ -40,7 +40,9 @@
         "solver2_MacCormack.C": "cpp",
         "Roe.C": "cpp",
         "solver3_Roe.C": "cpp",
-        "solver1_JST.C": "cpp"
+        "solver1_JST.C": "cpp",
+        "Savings.C": "cpp"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "C_Cpp.dimInactiveRegions": false
 }

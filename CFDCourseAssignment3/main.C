@@ -2,45 +2,41 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#define solver solver1
+
+void init(Field W);
+void print( const Field W);
+double LTS(Field W);
+void solver3(Field W, const double dt);
 //solver1是Jameson格式搭配3阶荣格库塔;
 //solver2是MacCormack法
 //solver3是Roe格式搭配3阶荣格库塔法
 
-void init(double W[][3]);
-double localTime(const double W[][3],const int I);
-void print( const double W[][3]);
-void printW(const double W[][3]);
-void printF(const double W[][3]);
-double calDtGlobal(double W[][3]);
-
 int main()
 {
-    double W[maxSpace + 3][3] , R[maxSpace + 3][3];
-    //采用单元中心法, 实际存储网格从W[1] 到W[maxSpace]; W[0]与W[maxSpace+1],W[maxSpace+2]是边界虚网格
+    Field W;
+    //采用单元中心法, W[0] 与W[maxSpace]是边界;
     init(W);
-    double dtGlobal;
-    int timeStep = 0;
 
-    for (double t = 0; t <= stopTime && timeStep<100 ; t += dtGlobal)
+    double dtGlobal;
+    int step = 0;
+    for (double t = 0; t <= stopTime && step<100 ; t += dtGlobal)
     {
-        dtGlobal=calDtGlobal(W);
-        solver(W, dtGlobal, R);
+        dtGlobal=LTS(W);
+        solver3(W,dtGlobal); //当前用的是solver3
         
-        timeStep++;
-        cout << "dtGlobal= " << dtGlobal;
-        cout << "\t time step = " << timeStep;
-        cout << "\t time = " << t << endl;
+        step++;
+        cout.width(8);
+        cout << "dtGlobal= " << dtGlobal
+             << "\t step = " << step
+             << "\t time = " << t << endl;
     }
     print(W);
-    printW(W);
-    printF(W);
     return 0;
 }
 
 //						declear the funcs								 //
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-void init(double W[][3])
+void init(Field W)
 {
     cout<<"\nInitializing the fields..."<<endl;
     double u1=0.0, rho1=1.0, p1=1.0;
@@ -61,9 +57,8 @@ void init(double W[][3])
     }
 }
 
-//			     0方向梯度边界条件, 边界上的点直接等于内部的点                      //
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-void zeroGradBC(double W[][3])
+//0方向梯度边界条件, 边界上的点直接等于内部的点 
+void zeroGradBC(Field W)
 {
     for (int k = 0; k < 3; k++)
     {
@@ -73,7 +68,7 @@ void zeroGradBC(double W[][3])
     }
 }
 
-void WToF(double const W[3], double F[3])
+void WToF(Vector W, Vector F)
 {
     double p0=calPressure(W);
     double u=W[1]/W[0];
@@ -82,7 +77,7 @@ void WToF(double const W[3], double F[3])
     F[2] = (W[2] + p0) * u;
 }
 
-void print(const double W[][3])
+void print(const Field W)
 {
 
     ofstream foutAll("data/result.dat");
@@ -96,40 +91,15 @@ void print(const double W[][3])
     } 
 }
 
-void printW(const double W[][3])
-{
-    ofstream fout("data/vecterW.dat");
-    cout<<"\nprint W[][3]\n";
-    for (unsigned i =0 ; i <=maxSpace ; i++)
-    {
-        fout<<W[i][0]<<"\t"<<W[i][1]<<'\t'<<W[i][2]<<endl;
-    }
-}
 
-void printF(const double W[][3])
-{
-    ofstream fout("data/vecterF.dat");
-    cout<<"\nprint F\n";
-    for (unsigned i =0 ; i <=maxSpace ; i++)
-    {
-        double F[3];
-        WToF(W[i], F);
-        fout<<F[0]<<"\t"<<F[1]<<'\t'<<F[2]<<endl;
-    }
-}
-
-double localTime(const double W[][3], const int I)
-{
-    return CFL*dx/lambda(W[I]);
-}
-
-double calDtGlobal(double W[][3])
+//LTS=LocalTimeStepping,当地时间步法,返回全局的时间步
+double LTS(Field W)
 {
     double min=1e10;
     double dtLocal;
     for (int i = 0; i <=maxSpace ; i++)
     {
-        dtLocal=localTime(W,i);//注意此i的生存期
+        dtLocal=CFL*dx/lambda(W[i]);//注意此i的生存期
         if(dtLocal<min)
         {
             min=dtLocal;
