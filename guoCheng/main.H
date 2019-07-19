@@ -1,9 +1,6 @@
 /***************************include & namespace  **************************/
 #include<iostream>
 #include<cmath>
-#include<cstdlib>
-#include<fstream>
-#include<iomanip>
 using namespace std;
 
 /***************************MACRO             **************************/
@@ -58,32 +55,11 @@ typedef XY     Tensor[maxI+1][maxJ+1][4];        //张量场,用于定义F对象
 typedef double Vector[4];                        //表示某一单元格的参数
 typedef unsigned const Index;                    //用于传递编号,只读
 /***************************declare the funcs  **************************/
-class Mesh;
+double LTS(FlowField &Q);
 AERO convert(Vector vec);
 double safeSqrt(double xx);
-void QToF(Vector Q, Vector F);
-/***************************define the class  **************************/
-class FlowField
-{
-    Field Q;
-    Tensor Fc;
-    public:
-    FlowField(int caseNo);
-    void init1();
-    void init2();
-    void BC1();
-    void BC2();
-    void solve(Mesh &mesh);
-    double LTS();
-    double dt;
-    
-    private:
-    void Roe(Index I,Index J, XY dS, double dV);
-	void MUSCL(Field const U, Index I,Index J, Vector UR, Vector UL);
-	void MUSCL(ScalarField const U, Index I,Index J, double & UR, double & UL);
-    void Harten(Index I, Index J);
-};
-
+/***************************declare the class  **************************/
+class FlowField;
 class Mesh
 {
     MeshPoint mesh;
@@ -91,6 +67,19 @@ class Mesh
     Mesh();
     double getVolume(Index I, Index J);
     XY     getArea(Index I, Index J);
-    friend void FlowField::solve(Mesh &mesh);
+    friend void FlowField::solve();
     void print();
+};
+
+class FlowField
+{
+    Field Q;
+    public:
+    FlowField(int caseNo);
+    void init1();
+    void init2();
+    void BC1();
+    void BC2();
+    void solve();
+    friend double LTS();
 };

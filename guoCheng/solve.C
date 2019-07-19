@@ -1,73 +1,11 @@
 //这个是一维的!待更改!
 #include"main.H"
-
-FlowField::FlowField(int caseNo)//构造函数,选一个方案
-{
-    switch(caseNo)
-    {
-        case (1): init1(); break; //设置初场,init1表示入口1.5Ma, init2()表示入口1.8Ma
-        case (2): init2(); break;
-        default: cout<<"wrong number! exit!"<<endl; exit(1);
-    }
-}
-
-//LTS=LocalTimeStepping,当地时间步法,返回全局的时间步
-double FlowField::LTS()
-{
-    double min=1e10;
-    double dtLocal;
-	AERO xxx;
-    double lambda;
-    
-    forAll(
-    	xxx=convert(Q[i][j]);
-        lambda=(xxx.VV + xxx.c)*1;//咱先这样,一会再改
-
-        dtLocal=CFL*1/lambda;
-
-        if(dtLocal<min)
-            min=dtLocal;
-    );
-    return min;
-}
-
-void FlowField::init1()
-{
-    //初始全部给1.8Ma对应的速度, 压力给大气压101325, 静温300
-    //声速340.68
-    //速度u=613, v=0, 密度rho=p/RT=1.17
-    forAll(
-        Q[i][j][0]=1.17;
-        Q[i][j][1]=717.21; //1.17*613
-        Q[i][j][2]=0;
-        Q[i][j][1]=215713; // 287/0.4*300+613;
-    );
-}
-
-void FlowField::init2()
-{
-    //初始全部给1.5Ma对应的速度, 压力给大气压101325, 静温300, 
-    //速度u=511.02, v=0, 密度rho=p/RT=1.17
-    forAll(
-        Q[i][j][0]=1.17;
-        Q[i][j][1]=597.89; //1.17*511.02
-        Q[i][j][2]=0;
-        Q[i][j][1]=215713; // 287/0.4*300+613;
-    );
-}
-
-void FlowField::BC1()
-{
-
-}
-
-void FlowField::BC2()
-{
-
-}
+void Roe(Field Q, Index I,Index J, Tensor Fc);
+void MUSCL(Field const U, Index I,Index J, Vector UR, Vector UL);
+void MUSCL(ScalarField const U, Index I,Index J, double & UR, double & UL);
 
 //三阶显式RungeKutta法
-void FlowField::solve(Mesh& mesh)
+void solve(const double dt)
 {
     Tensor Fc;   //对流通量, 右侧x和上侧y的, 向外为正
     const double alpha[3]={0.1918, 0.4929, 1.0};
@@ -97,10 +35,11 @@ void FlowField::solve(Mesh& mesh)
                     Q[I][J][k] = Q0[I][J][k] - alpha[a] * dt / dV * R[k];
                 }
             }
+    
 }
 
 //Roe格式计算对流通量
-void FlowField::Roe(Index I,Index J, XY dS, double dV)
+void Roe(Field Q, Index I, Index J, Tensor Fc, const XY dS, const double dV)
 {  
     //先定义流场各变量
     ScalarField rho, u, v, VV,  p, H;
@@ -118,11 +57,11 @@ void FlowField::Roe(Index I,Index J, XY dS, double dV)
     Vector F1, F234, F5;
     double LAMC;
 
-    MUSCL(rho, I, J, rhoR, rhoL);
-    MUSCL(p,   I, J, pR,   pL);    //注意不要越界~
-    MUSCL(u,   I, J, uR,   uL);
-    MUSCL(H,   I, J, HR,   HL);
-    MUSCL(Q,   I, J, QR,   QL);
+    MUSCL(rho, I, rhoR, rhoL);
+    MUSCL(p, I, pR, pL);    //注意不要越界~
+    MUSCL(u, I, uR, uL);
+    MUSCL(H, I, HR, HL);
+    MUSCL(Q, I, QR, QL);
 
     //计算Roe平均量
     const double LR=safeSqrt(rhoL)+ safeSqrt(rhoR);
@@ -146,26 +85,26 @@ void FlowField::Roe(Index I,Index J, XY dS, double dV)
 
     //求出Roe矩阵相关值
         //delu,delv,delw代表三个分量, delV代表大写V的delta
-        //lambda123分别是是V-c, V, V+c
-    F1[0]  = lambda1 * (delP-rho_*c_*delV)/(2*c_*c_) * 1;
-    F1[1]  = lambda1 * (delP-rho_*c_*delV)/(2*c_*c_) * (u_-c_);
-	F1[2]  = lambda1 * (delP-rho_*c_*delV)/(2*c_*c_) * (H_-c_*V_);
+    F1[0]  = fabs(V_-c_) * (delP-rho_*c_*delV)/(2*c_*c_) * 1;
+    F1[1]  = fabs(V_-c_) * (delP-rho_*c_*delV)/(2*c_*c_) * (u_-c_);
+	F1[2]  = fabs(V_-c_) * (delP-rho_*c_*delV)/(2*c_*c_) * (H_-c_*V_);
   
-    F234[0]= lambda2 * ( (delRho-delP/(c_*c_))*1  + 0); 
-    F234[1]= lambda2 * ( (delRho-delP/(c_*c_))*u_ 
-                   + rho_ *(delu   -  delV)    );
-    F234[2]= lambda2 * ( (delRho-delP/(c_*c_))*u_
-                              +rho_ *(u_*delu - V_*delV) );
-     
-    F5[0]  = lambda3 * (delP+rho_*c_*delV)/(2*c_*c_)*1;
-    F5[1]  = lambda3 * (delP+rho_*c_*delV)/(2*c_*c_) *(u_+c_);
-    F5[0]  = lambda3 * (delP+rho_*c_*delV)/(2*c_*c_)*(H_+c_*V_);
+    F234[0]= fabs(V_)*( (delRho-delP/(c_*c_))*1  + 0); 
+    F234[1]= fabs(V_)*( (delRho-delP/(c_*c_))*u_ 
+                  +rho_*(delu   -  delV)    );
+    F234[2]= fabs(V_)*( (delRho-delP/(c_*c_))*u_
+                             +rho_*(u_*delu - V_*delV) );
+    
+    F5[0]  = fabs(V_+c_)*(delP+rho_*c_*delV)/(2*c_*c_)*1;
+    F5[1]  = fabs(V_+c_)*(delP+rho_*c_*delV)/(2*c_*c_)*(u_+c_);
+    F5[0]  = fabs(V_+c_)*(delP+rho_*c_*delV)/(2*c_*c_)*(H_+c_*V_);
 
-    double delta=0.1*c_; //熵修正, Harten's entropy correction
-    LAMC=lambda3;
+    double delta=0.1*c_;
+    LAMC=fabs(V_+c_);
     if(fabs(LAMC)<=delta)
          LAMC=(LAMC*LAMC+ delta*delta) /(2*delta);
     
+    is0(delta);
 
     Vector FcR, FcL;
     WToF(WR, FcR);
@@ -177,10 +116,10 @@ void FlowField::Roe(Index I,Index J, XY dS, double dV)
 }
 
 //带限制器的MUSCL插值,前两个参数是输入,后两个输出, 系数k^为1/3
-void FlowField::MUSCL(Field const U, Index I, Index J, Vector UR, Vector UL)
+void MUSCL(Field const U, Index I, Vector UR, Vector UL)
 {
-    if(I+2>maxI || I-1<0) {cout<<"\n\nout of bound!!!\n\n";}
-    if(J+2>maxJ || J-1<0) {cout<<"\n\nout of bound!!!\n\n";}
+    if(I+2>maxSpace || I-1<0) {cout<<"out of bound!!!"<<endl;  }
+
     const double epsilon= dx; //限制器参数epsilon与几何尺寸相关
     
     double aR=U[I+2]-U[I+1], bR=U[I+1]-U[I];
@@ -199,10 +138,9 @@ void FlowField::MUSCL(Field const U, Index I, Index J, Vector UR, Vector UL)
 }
 
 //重载用于标量的带限制器的MUSCL插值函数 ,前两个参数是输入,后两个输出, 系数k^为1/3
-void FlowField::MUSCL(ScalarField const U, Index I, Index J, double & UR, double & UL)
+void MUSCL(ScalarField const U, Index I, double & UR, double & UL)
 {
-    if(I+2>maxI || I-1<0) {cout<<"\n\nout of bound!!!\n\n";}
-    if(J+2>maxJ || J-1<0) {cout<<"\n\nout of bound!!!\n\n";}
+    if(I+2>maxSpace || I-1<0) {cout<<"out of bound!!!"<<endl; }
     const double epsilon= dx; //限制器参数epsilon与几何尺寸相关
 
     double aR=U[I+2]-U[I+1], bR=U[I+1]-U[I];
@@ -217,10 +155,7 @@ void FlowField::MUSCL(ScalarField const U, Index I, Index J, double & UR, double
     
     UR=U[I+1]-0.5*deltaR;
     UL=U[I]  +0.5*deltaL;
+
 }
 
 
-void FlowField::calLambda(double &lambda1, double &lambda2, double &lambda3)
-{
-    
-}

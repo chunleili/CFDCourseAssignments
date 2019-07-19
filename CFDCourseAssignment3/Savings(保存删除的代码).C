@@ -100,3 +100,24 @@ void MUSCL(double const U, int const I, double & UR, double & UL)
     UL=UI +0.25*((1+kk)* delFUI  + (1-kk)* delBUI );
     
 }
+
+inline double calPressure(const Vector W)
+{
+	is0(W[0]);
+	double u = W[1]/W[0];
+    return (GAMMA-1) * W[0] *( W[2]/W[0] - 0.5* u * u );
+}
+
+inline  double soundVelocity(const Vector W, const unsigned step, const unsigned I)
+{
+	is0(W[0]); isNegative(W[0]);
+	whereNegative(calPressure(W), step, I);
+
+    return sqrt( GAMMA * calPressure(W)/W[0] );
+}
+
+inline  double Jacobian(const Vector W)
+{
+	is0(W[0]);
+    return fabs(W[1]/W[0]) + soundVelocity(W, const unsigned step, const unsigned );
+}

@@ -3,7 +3,7 @@ OBJS = main.o solver3_Roe.o #solver1_JST.o solver2_MacCormack.o
 LIBS = -lm
 EXE  = a.out
 CFLG = -g -Wall -std=c++11 
-start   : $(OBJS) main.H
+main   : $(OBJS) main.H
 	g++ -o ${EXE} ${CFLG} ${OBJS} ${LIBS}
 
 main.o    : $(SRCS) main.H 

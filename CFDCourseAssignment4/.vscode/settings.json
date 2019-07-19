@@ -43,6 +43,11 @@
         "utility": "cpp",
         "genMesh.C": "cpp",
         "init.C": "cpp",
-        "solve.C": "cpp"
+        "solve.C": "cpp",
+        "保存删除的代码.C": "cpp",
+        "iomanip": "cpp",
+        "Mesh.C": "cpp",
+        "utility.C": "cpp",
+        "mesh.C": "cpp"
     }
 }

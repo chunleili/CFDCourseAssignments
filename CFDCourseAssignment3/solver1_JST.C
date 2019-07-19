@@ -54,7 +54,7 @@ void scalarJSTConv(const double W[][3],  double R[][3])
     {
         //先定义一些系数, Lambda和Ep2, Ep4, 用于计算D[k]
         //其中Y与Y1是开关函数,用于切换Ep2和Ep4
-         double Lambda_f = 0.5 * (lambda(W[I]) + lambda(W[I + 1]));
+         double Lambda_f = 0.5 * (Jacobian(W[I]) + Jacobian(W[I + 1]));
 
          double p1 = calPressure(W[I + 1]), p2  = calPressure(W[I + 2]);
          double p0 = calPressure(W[I]),     p_1 = calPressure(W[I - 1]);

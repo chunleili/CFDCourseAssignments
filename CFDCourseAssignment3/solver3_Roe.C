@@ -2,43 +2,42 @@
 #ifdef SOLVER3
 
 #include"main.H"
-void Roe(Field W, int const I, Field Fc);
-void MUSCL(Field const U, int const I, Vector UR, Vector UL);
-void MUSCL(ScalarField const U, int const I, double & UR, double & UL);
+void Roe(Field W, unsigned const I, Field Fc);
+void MUSCL(Field const U, unsigned const I, Vector UR, Vector UL);
+void MUSCL(ScalarField const U, unsigned const I, double & UR, double & UL);
 
 //一阶精度的三阶显式RungeKutta法
 void solver3(Field W, const double dt)
 {
-    Field Fc;
+    Field Fc;   //对流通量, 右侧的
     const double alpha[3]={0.1481, 0.4, 1.0};
     //先定义W0,用于保存原始的W
     Field W0;
-    for (int I = 0; I <= maxSpace; I++)
-        for (int k = 0; k < 3; k++)
+    for (unsigned I = 0; I <= maxSpace; I++)
+        for (unsigned k = 0; k < 3; k++)
             W0[I][k] = W[I][k];
     
     //后面每一步都先计算残差, 后根据RK公式更新W
     Vector R;//R for Residual, 残差
-    for(int a=0;a<=2;a++)   //a代表荣格库塔法的每一步
+    for(unsigned a=0;a<=2;a++)   //a代表荣格库塔法的每一步
     {
-        
-        for (int I = 0; I <= maxSpace; I++)
+        for (unsigned I = 1; I <= maxSpace-2; I++)//I从这里定义,传递,代表空间位置,单元编号!
         {  
             //利用Roe格式计算通量
             Roe(W, I, Fc);
             //计算残差
-            for (int k = 0; k < 3; k++)
+            for (unsigned k=0; k<3; k++)
+            {
                 R[k]=Fc[I+1][k]-Fc[I][k];
-    
             //利用荣格库塔法计更新流场
-            for (int k = 0; k < 3; k++)
                 W[I][k] = W0[I][k] - alpha[a] * dt / dx * R[k];
+            }
         }
     }
 }
 
 //Roe格式计算对流通量
-void Roe(Field W, int const I, Field Fc)
+void Roe(Field W, unsigned const I, Field Fc)
 {  
     //先定义流场各变量
     ScalarField u, V, rho, p, H;
@@ -48,22 +47,26 @@ void Roe(Field W, int const I, Field Fc)
     V[I]=u[I];
     H[I]=W[I][2]/rho[I]+p[I]/rho[I];
     p[I]=(GAMMA-1)* (W[I][2] - rho[I]*fabs(V[I]*V[I])/2);
-    
+    is0(rho[I]);
+
     //然后利用MUSCL分裂这些变量, 并且求出Roe平均量
     Vector WL, WR;
     double rhoL, rhoR, uL, uR, HL, HR, pL, pR;
     Vector F1, F234, F5;
     double LAMC;
 
-    MUSCL(p, I, pR, pL);
+    MUSCL(p, I, pR, pL);    //注意不要越界~
     MUSCL(rho, I, rhoR, rhoL);
     MUSCL(u, I, uR, uL);
     MUSCL(H, I, HR, HL);
     MUSCL(W, I, WR, WL);
 
     //计算Roe平均量
-    const double L=sqrt(rhoL)/ (sqrt(rhoL)+ sqrt(rhoR));//定义两个系数
-    const double R=sqrt(rhoR)/ (sqrt(rhoL)+ sqrt(rhoR));
+    isNegative(rhoL); isNegative(rhoR);
+    const double LR=sqrt(rhoL)+ sqrt(rhoR);
+    is0(LR);
+    const double L=sqrt(rhoL)/ LR;//定义两个系数
+    const double R=sqrt(rhoR)/ LR;
 
     const double rho_=sqrt(rhoL*rhoR);
     const double u_  =uL*L+uR*R;
@@ -71,6 +74,7 @@ void Roe(Field W, int const I, Field Fc)
     const double q_2 =u_*u_;
     const double c_  =sqrt((GAMMA-1)*(H_-q_2/2));
     const double V_  =u_;
+    isNegative((GAMMA-1)*(H_-q_2/2));
 
     //计算各个del值
     const double delP  =pR-pL;
@@ -80,6 +84,7 @@ void Roe(Field W, int const I, Field Fc)
 
     //求出Roe矩阵相关值
         //delu,delv,delw代表三个分量, delV代表大写V的delta
+    is0(c_);
     F1[0]  = fabs(V_-c_) * (delP-rho_*c_*delV)/(2*c_*c_) * 1;
     F1[1]  = fabs(V_-c_) * (delP-rho_*c_*delV)/(2*c_*c_) * (u_-c_);
 	F1[2]  = fabs(V_-c_) * (delP-rho_*c_*delV)/(2*c_*c_) * (H_-c_*V_);
@@ -94,30 +99,33 @@ void Roe(Field W, int const I, Field Fc)
     F5[1]  = fabs(V_+c_)*(delP+rho_*c_*delV)/(2*c_*c_)*(u_+c_);
     F5[0]  = fabs(V_+c_)*(delP+rho_*c_*delV)/(2*c_*c_)*(H_+c_*V_);
 
-
-    double delta=0.1*soundVelocity(W[I]);
+    double delta=0.1*c_;
     LAMC=fabs(V_+c_);
     if(fabs(LAMC)<=delta)
-    LAMC=(LAMC*LAMC+ delta*delta) /(2*delta);
+         LAMC=(LAMC*LAMC+ delta*delta) /(2*delta);
+    
+    is0(delta);
 
     Vector FcR, FcL;
     WToF(WR, FcR);
     WToF(WL, FcL);
 
     //最后算出单元I的对流通量Fc
-    for(int k=0; k<3; k++)
+    for(unsigned k=0; k<3; k++)
         Fc[I][k]=0.5*( FcR[k]+ FcL[k]- (F1[k]+F234[k]+F5[k]) );
 }
 
 //带限制器的MUSCL插值,前两个参数是输入,后两个输出, 系数k^为1/3
-void MUSCL(Field const U, int const I, Vector UR, Vector UL)
+void MUSCL(Field const U, unsigned const I, Vector UR, Vector UL)
 {
+    if(I+2>maxSpace || I-1<0) {cout<<"out of bound!!!"<<endl;  }
+
     const double epsilon= dx; //限制器参数epsilon与几何尺寸相关
     
     double aR=U[I+2]-U[I+1], bR=U[I+1]-U[I];
     double aL=U[I+1]-U[I],   bL=U[I]  -U[I-1];
     double a, b;
-    for(int k=0;k<3;k++)
+    for(unsigned k=0;k<3;k++)
     {
         a=aR, b=bR;
         double deltaR=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
@@ -130,16 +138,19 @@ void MUSCL(Field const U, int const I, Vector UR, Vector UL)
 }
 
 //重载用于标量的带限制器的MUSCL插值函数 ,前两个参数是输入,后两个输出, 系数k^为1/3
-void MUSCL(ScalarField const U, int const I, double & UR, double & UL)
+void MUSCL(ScalarField const U, unsigned const I, double & UR, double & UL)
 {
+    if(I+2>maxSpace || I-1<0) {cout<<"out of bound!!!"<<endl; }
     const double epsilon= dx; //限制器参数epsilon与几何尺寸相关
 
     double aR=U[I+2]-U[I+1], bR=U[I+1]-U[I];
     double aL=U[I+1]-U[I],   bL=U[I]  -U[I-1];
 
     double a=aR, b=bR;
+    is0(( 2*a*a +2*b*b -a*b +3*epsilon));
     double deltaR=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
     a=aL, b=bL;
+    is0(( 2*a*a +2*b*b -a*b +3*epsilon));
     double deltaL=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
     
     UR=U[I+1]-0.5*deltaR;
