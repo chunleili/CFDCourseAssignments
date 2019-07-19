@@ -136,7 +136,7 @@ void FlowField::Roe(Index I,Index J, XY dS, double dV)
     const double q_2 =u_*u_+v_*v_;
     const double c_  =safeSqrt((GAMMA-1)*(H_-q_2/2));
     XY V_;
-    V_.x=u_; V_.y=v_;
+    V_.x=calV_(); V_.y=calV_();
 
     //计算各个del值
     const double delP  =pR-pL;
@@ -220,7 +220,20 @@ void FlowField::MUSCL(ScalarField const U, Index I, Index J, double & UR, double
 }
 
 
-void FlowField::calLambda(double &lambda1, double &lambda2, double &lambda3)
+void FlowField::calV(Index I, Index J, Mesh &mesh)
 {
-    
+    double x1,x2,x3,x4, y1,y2,y3,y4;
+    //从左下开始逆时针编号,左下点代表1,右下2,右上3,左上4
+    //左下代表本单元格坐标
+    x1=mesh[I  ][J  ].x;
+    x2=mesh[I+1][J  ].x;
+    x3=mesh[I+1][J+1].x;
+    x4=mesh[I  ][J+1].x;
+
+    y1=mesh[I  ][J  ].y;
+    y2=mesh[I+1][J  ].y;
+    y3=mesh[I+1][J+1].y;
+    y4=mesh[I  ][J+1].y;
+    double u_nx=(y4-y1)*u_/safeSqrt((x1-x4)*(x1-x4)+(y1-y4)*(y1-y4));
+    double v_ny=(x2-x1)*v_/safeSqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
 }

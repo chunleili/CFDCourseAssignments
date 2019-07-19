@@ -74,7 +74,7 @@ double Mesh::getVolume(Index I, Index J)
     return volume;
 }
 
-//计算单元体右上侧面积
+//计算单元体左下侧面积
 XY Mesh::getArea( Index I, Index J)
 {
     double x1,x2,x3,x4, y1,y2,y3,y4;
@@ -91,8 +91,8 @@ XY Mesh::getArea( Index I, Index J)
     y3=mesh[I+1][J+1].y;
     y4=mesh[I  ][J+1].y;
 
-    S.x=sqrt( (x3-x2)*(x3-x2)+(y3-y2)*(y3-y2) );//右侧面积
-    S.y=sqrt( (x4-x3)*(x4-x3)+(y4-y3)*(y4-y3) );//上侧面积
+    S.x=safeSqrt( (x1-x2)*(x1-x2)+(y2-y1)*(y2-y1) );//下侧面积S1
+    S.y=safeSqrt( (x4-x1)*(x4-x1)+(y1-y4)*(y1-y4) );//左侧面积S4
     
     return S;
 }

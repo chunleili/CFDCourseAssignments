@@ -92,5 +92,6 @@ class Mesh
     double getVolume(Index I, Index J);
     XY     getArea(Index I, Index J);
     friend void FlowField::solve(Mesh &mesh);
+    friend void FlowField::calV(Mesh &mesh);
     void print();
 };

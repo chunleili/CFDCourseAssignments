@@ -1,3 +1,4 @@
+#include"main.H"
 /***************************utility  **************************/
 //Q与Fc之间的转化
 void QToF(Vector Q, Vector F)
