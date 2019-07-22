@@ -83,7 +83,7 @@ double dt;
 
 unsigned I, J;
 ScalarField rho, u, v,  p, H, Vcv1, Vcv4; //Vcv代表contravirant velocity 逆变速度
-double lambda1,lambda2,lambda3;
+//double lambda1,lambda2,lambda3;
 
 void roeFlux1();
 void roeFlux4();
@@ -297,19 +297,19 @@ void solve()
 /***********************flux1****************************/
 void roeFlux1()
 {   
+    double nx=N1[I][J].x, ny=N1[I][J].y;
+    
     //利用MUSCL分裂流场变量, 并且求出Roe平均量 
     double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
-    double Vcv1L, Vcv1R;
+    double VcvL, VcvR;
+    Vcv1[I][J] =nx * u[I][J] + ny * v[I][J];
 
-    MUSCL1(rho, rhoR, rhoL);    //带限制器的三点MUSCL插值
-    MUSCL1(p,   pR,   pL  );    //注意不要越界~
-    MUSCL1(u,   uR,   uL  );
-    MUSCL1(v,   vR,   vL  );
-    MUSCL1(H,   HR,   HL  );
-    
-
-    Vcv1[I][J] =N1[I][J].x * u[I][J] +N1[I][J].y * v[I][J];
-    MUSCL1(Vcv1, Vcv1L, Vcv1R);
+    MUSCL4(rho,  rhoR, rhoL);    //带限制器的三点MUSCL插值
+    MUSCL4(p,    pR,   pL  );    //注意不要越界~
+    MUSCL4(u,    uR,   uL  );
+    MUSCL4(v,    vR,   vL  );
+    MUSCL4(H,    HR,   HL  );
+    MUSCL4(Vcv1, VcvL, VcvR);   //为了方便代码重用, 分裂Vcv1后记为VcvL和VcvR
 
     //计算Roe平均量
     const double denoLR=safeSqrt(rhoL)+ safeSqrt(rhoR);
@@ -322,14 +322,13 @@ void roeFlux1()
     const double H_  =HL*L+HR*R;
     const double q_2 =u_*u_+v_*v_;
     const double c_  =safeSqrt((GAMMA-1)*(H_-q_2/2));
-    
-    const double Vcv1_=N1[I][J].x * u_ +N1[I][J].y * v_;
-    
+
+    const double Vcv_=nx * u_ + ny * v_;
 
     //计算lambda
-    lambda1=Harten(fabs(Vcv1_-c_));
-    lambda2=Harten(fabs(Vcv1_   ));
-    lambda3=Harten(fabs(Vcv1_+c_));   
+    const double lambda1=Harten(fabs(Vcv_-c_));
+    const double lambda2=Harten(fabs(Vcv_   ));
+    const double lambda3=Harten(fabs(Vcv_+c_));   
 
     //求出Roe矩阵相关值
         //delu,delv,delw代表三个分量, delVcv代表大写Vcv的delta
@@ -337,26 +336,30 @@ void roeFlux1()
     const double delP   =pR-pL;
     const double delRho =rhoR-rhoL;
     const double delu   =uR-uL;
-    const double delVcv1=Vcv1R-Vcv1L;
+    const double delv   =vR-vL;
+    const double delVcv =VcvR-VcvL;
+
 
     Vector delF1, delF234, delF5;
-    delF1[0]  = lambda1 * (delP-rho_*c_*delVcv1)/(2*c_*c_) * 1;
-    delF1[1]  = lambda1 * (delP-rho_*c_*delVcv1)/(2*c_*c_) * (u_-c_*N1[I][J].x);
-    delF1[2]  = lambda1 * (delP-rho_*c_*delVcv1)/(2*c_*c_) * (u_-c_*N1[I][J].y);
-	delF1[3]  = lambda1 * (delP-rho_*c_*delVcv1)/(2*c_*c_) * (H_-c_*Vcv1_);
-  
-    delF234[0]= lambda2 * ( (delRho-delP/(c_*c_))*1  + 0); 
-    delF234[1]= lambda2 * ( (delRho-delP/(c_*c_))*u_ 
-                   + rho_ *(delu   -  delVcv1)    );
-    delF234[2]= lambda2 * ( (delRho-delP/(c_*c_))*u_ 
-                   + rho_ *(delu   -  delVcv1)    );                
-    delF234[3]= lambda2 * ( (delRho-delP/(c_*c_))*u_
-                              +rho_ *(u_*delu - Vcv1_*delVcv1) );
-     
-    delF5[0]  = lambda3 * (delP+rho_*c_*delVcv1)/(2*c_*c_) *1;
-    delF5[1]  = lambda3 * (delP+rho_*c_*delVcv1)/(2*c_*c_) *(u_+c_);
-    delF5[2]  = lambda3 * (delP+rho_*c_*delVcv1)/(2*c_*c_) *(u_+c_);    
-    delF5[3]  = lambda3 * (delP+rho_*c_*delVcv1)/(2*c_*c_) *(H_+c_*Vcv1_);
+
+    const double coeff1=lambda1 * (delP-rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
+    delF1[0]  = coeff1 * 1;
+    delF1[1]  = coeff1 * (u_-c_*nx);
+    delF1[2]  = coeff1 * (u_-c_*ny);
+	delF1[3]  = coeff1 * (H_-c_*Vcv_);
+
+    const double coeff2=lambda2 *( delRho-delP/SQ(c_) );//定义系数以减少计算量 
+    const double coeff3=lambda2 * rho_;
+    delF234[0]= coeff2; 
+    delF234[1]= coeff2 * u_  + coeff3*(delu - delVcv*nx);
+    delF234[2]= coeff2 * v_  + coeff3*(delv - delVcv*ny);                
+    delF234[3]= coeff2 * q_2 + coeff3*(u_*delu + v_*delv - Vcv_*delVcv);
+    
+    const double coeff5=lambda3 * (delP+rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
+    delF5[0]  = coeff5 *1;
+    delF5[1]  = coeff5 *(u_+c_*nx);
+    delF5[2]  = coeff5 *(v_+c_*ny);    
+    delF5[3]  = coeff5 *(H_+c_*Vcv_);
 
     //分裂Fc
     Vector QL, QR, Fc1R, Fc1L;
@@ -416,18 +419,21 @@ void MUSCL1(ScalarField const U, double & UR, double & UL)
 /***********************flux4****************************/
 void roeFlux4()
 {   
+    double nx=N4[I][J].x, ny=N4[I][J].y;
+    
     //利用MUSCL分裂流场变量, 并且求出Roe平均量 
     double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
-    double Vcv4L, Vcv4R;
-    Vcv4[I][J] =N4[I][J].x * u[I][J] +N4[I][J].y * v[I][J];
+    double VcvL, VcvR;
+    Vcv4[I][J] =nx * u[I][J] + ny * v[I][J];
 
-    MUSCL4(rho, rhoR, rhoL);    //带限制器的三点MUSCL插值
-    MUSCL4(p,   pR,   pL  );    //注意不要越界~
-    MUSCL4(u,   uR,   uL  );
-    MUSCL4(v,   vR,   vL  );
-    MUSCL4(H,   HR,   HL  );
-    MUSCL4(Vcv4, Vcv4L, Vcv4R);
+    MUSCL4(rho,  rhoR, rhoL);    //带限制器的三点MUSCL插值
+    MUSCL4(p,    pR,   pL  );    //注意不要越界~
+    MUSCL4(u,    uR,   uL  );
+    MUSCL4(v,    vR,   vL  );
+    MUSCL4(H,    HR,   HL  );
+    MUSCL4(Vcv4, VcvL, VcvR);   //为了方便代码重用, 分裂Vcv4后记为VcvL和VcvR
 
+    
     //计算Roe平均量
     const double denoLR=safeSqrt(rhoL)+ safeSqrt(rhoR);
     const double L=safeSqrt(rhoL)/ denoLR;//定义两个系数
@@ -440,12 +446,12 @@ void roeFlux4()
     const double q_2 =u_*u_+v_*v_;
     const double c_  =safeSqrt((GAMMA-1)*(H_-q_2/2));
 
-    const double Vcv4_=N4[I][J].x * u_ +N4[I][J].y * v_;
+    const double Vcv_=nx * u_ + ny * v_;
 
    //计算lambda
-    lambda1=Harten(fabs(Vcv4_-c_));
-    lambda2=Harten(fabs(Vcv4_   ));
-    lambda3=Harten(fabs(Vcv4_+c_));   
+    const double lambda1=Harten(fabs(Vcv_-c_));
+    const double lambda2=Harten(fabs(Vcv_   ));
+    const double lambda3=Harten(fabs(Vcv_+c_));   
 
     //求出Roe矩阵相关值
         //delu,delv,delw代表三个分量, delVcv代表大写Vcv的delta
@@ -453,27 +459,30 @@ void roeFlux4()
     const double delP   =pR-pL;
     const double delRho =rhoR-rhoL;
     const double delu   =uR-uL;
-    const double delVcv4=Vcv4R-Vcv4L;
+    const double delv   =vR-vL;
+    const double delVcv =VcvR-VcvL;
 
 
     Vector delF1, delF234, delF5;
-    delF1[0]  = lambda1 * (delP-rho_*c_*delVcv4)/(2*c_*c_) * 1;
-    delF1[1]  = lambda1 * (delP-rho_*c_*delVcv4)/(2*c_*c_) * (u_-c_*N1[I][J].x);
-    delF1[2]  = lambda1 * (delP-rho_*c_*delVcv4)/(2*c_*c_) * (u_-c_*N1[I][J].y);
-	delF1[3]  = lambda1 * (delP-rho_*c_*delVcv4)/(2*c_*c_) * (H_-c_*Vcv4_);
-  
-    delF234[0]= lambda2 * ( (delRho-delP/(c_*c_))*1  + 0); 
-    delF234[1]= lambda2 * ( (delRho-delP/(c_*c_))*u_ 
-                   + rho_ *(delu   -  delVcv4)    );
-    delF234[2]= lambda2 * ( (delRho-delP/(c_*c_))*u_ 
-                   + rho_ *(delu   -  delVcv4)    );                
-    delF234[3]= lambda2 * ( (delRho-delP/(c_*c_))*u_
-                              +rho_ *(u_*delu - Vcv4_*delVcv4) );
-     
-    delF5[0]  = lambda3 * (delP+rho_*c_*delVcv4)/(2*c_*c_) *1;
-    delF5[1]  = lambda3 * (delP+rho_*c_*delVcv4)/(2*c_*c_) *(u_+c_);
-    delF5[2]  = lambda3 * (delP+rho_*c_*delVcv4)/(2*c_*c_) *(u_+c_);    
-    delF5[3]  = lambda3 * (delP+rho_*c_*delVcv4)/(2*c_*c_) *(H_+c_*Vcv4_);
+
+    const double coeff1=lambda1 * (delP-rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
+    delF1[0]  = coeff1 * 1;
+    delF1[1]  = coeff1 * (u_-c_*nx);
+    delF1[2]  = coeff1 * (u_-c_*ny);
+	delF1[3]  = coeff1 * (H_-c_*Vcv_);
+
+    const double coeff2=lambda2 *( delRho-delP/SQ(c_) );//定义系数以减少计算量 
+    const double coeff3=lambda2 * rho_;
+    delF234[0]= coeff2; 
+    delF234[1]= coeff2 * u_  + coeff3*(delu - delVcv*nx);
+    delF234[2]= coeff2 * v_  + coeff3*(delv - delVcv*ny);                
+    delF234[3]= coeff2 * q_2 + coeff3*(u_*delu + v_*delv - Vcv_*delVcv);
+    
+    const double coeff5=lambda3 * (delP+rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
+    delF5[0]  = coeff5 *1;
+    delF5[1]  = coeff5 *(u_+c_*nx);
+    delF5[2]  = coeff5 *(v_+c_*ny);    
+    delF5[3]  = coeff5 *(H_+c_*Vcv_);
 
     //分裂Fc
     Vector QL, QR, Fc4R, Fc4L;
@@ -484,8 +493,8 @@ void roeFlux4()
     //最后算出单元IJ的对流通量Fc4 与Fc2
     for(unsigned k=0; k<3; k++)
     {
-        Fc1[I][J][k]=0.5*( Fc4R[k] - Fc4L[k] - (delF1[k]+delF234[k]+delF5[k]) );
-        Fc3[I][J][k]=-Fc1[I][J+1][k];
+        Fc4[I][J][k]=0.5*( Fc4R[k] - Fc4L[k] - (delF1[k]+delF234[k]+delF5[k]) );
+        Fc2[I][J][k]=-Fc4[I][J+1][k];
     }
 }
 
@@ -538,7 +547,6 @@ double Harten(double lambda)
          lambda=(lambda*lambda+ delta*delta) /(2*delta);
     return lambda;
 }
-
 
 
 /***************************utility  **************************/
