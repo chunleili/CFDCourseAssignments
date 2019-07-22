@@ -38,4 +38,9 @@ inline double calSoundSpeed(double T)
 {
     return 20.045*sqrt(T);
 }
+#define safeSqrt(xx)\
+{\
+    if(xx<0) cout<<"\n\nerro sqrt! value is negative!\n\n\n";\
+    sqrt(xx)\
+}
 #endif

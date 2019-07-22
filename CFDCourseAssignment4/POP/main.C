@@ -2,6 +2,7 @@
 #include<iostream>
 #include<cmath>
 #include<cstdlib>
+#include<cstdio>
 #include<fstream>
 #include<iomanip>
 using namespace std;
@@ -24,6 +25,8 @@ using namespace std;
                     codes\
                 }\
 }
+
+
 
 #define SQ(a) (a*a)
 #define caseNo (1)
@@ -244,7 +247,27 @@ void init2()
 
 void BC1()
 {
+    //左右: 入口维持1.8Ma不用管, 出口用0梯度递推出来;
+    for(unsigned j=1; j<maxJ; j++)
+        for(unsigned k=0; k<4; k++)
+        {
+            Q[maxI][j][k]=Q[maxI-1][j][k]=Q[maxI-2][j][k];
+        }
+    //上下是壁面, 流向不变, 用0梯度外推, 垂向直接给0
+    //密度,静压不变, u不变, v变为0, E随之变化
+    for(unsigned i=1; i<maxI; i++)
+    {
+        Q[i][maxJ][0]=Q[i][maxJ-1][0]=Q[i][maxJ-2][0];
+        Q[i][maxJ][1]=Q[i][maxJ-1][1]=0;
+        Q[i][maxJ][2]=Q[i][maxJ-1][2]=Q[i][maxJ-2][2];
+        Q[i][maxJ][3]=Q[i][maxJ-1][3]=Q[i][maxJ-2][2]-0.5*SQ(Q[i][maxJ-2][1])/Q[i][maxJ-2][0];
 
+        Q[i][0][0]=Q[i][1][0];
+        Q[i][0][1]=0;
+        Q[i][0][2]=Q[i][1][2];
+        Q[i][0][3]=Q[i][1][3]-0.5*SQ(Q[i][1][1])/Q[i][1][0];
+    }
+        
 }
 
 void BC2()
@@ -277,7 +300,7 @@ void solve()
                 roeFlux1();
                 roeFlux4();
                 //计算残差
-                for (unsigned k=0; k<3; k++)
+                for (unsigned k=0; k<4; k++)
                 {   
                     //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
                     //Fc1,Fc2, 由于与坐标系正方向反向, 故取负号
@@ -368,7 +391,7 @@ void roeFlux1()
     toFlux(QL, Fc1L);
 
     //最后算出单元IJ的对流通量Fc1 与Fc3
-    for(unsigned k=0; k<3; k++)
+    for(unsigned k=0; k<4; k++)
     {
         Fc1[I][J][k]=0.5*( Fc1R[k] - Fc1L[k] - (delF1[k]+delF234[k]+delF5[k]) );
         Fc3[I][J][k]=-Fc1[I][J+1][k];
@@ -389,7 +412,7 @@ void MUSCL1(Field const U, Vector UR, Vector UL)
     a = aL; b = bL;
     double deltaL=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
 
-    for(unsigned k=0; k<3; k++)
+    for(unsigned k=0; k<4; k++)
     {
         UR[k] = U[I][J + 1][k] - 0.5 * deltaR;
         UL[k] = U[I][J    ][k] + 0.5 * deltaL;
@@ -433,7 +456,7 @@ void roeFlux4()
     MUSCL4(H,    HR,   HL  );
     MUSCL4(Vcv4, VcvL, VcvR);   //为了方便代码重用, 分裂Vcv4后记为VcvL和VcvR
 
-    
+
     //计算Roe平均量
     const double denoLR=safeSqrt(rhoL)+ safeSqrt(rhoR);
     const double L=safeSqrt(rhoL)/ denoLR;//定义两个系数
@@ -491,7 +514,7 @@ void roeFlux4()
     toFlux(QL, Fc4L);
 
     //最后算出单元IJ的对流通量Fc4 与Fc2
-    for(unsigned k=0; k<3; k++)
+    for(unsigned k=0; k<4; k++)
     {
         Fc4[I][J][k]=0.5*( Fc4R[k] - Fc4L[k] - (delF1[k]+delF234[k]+delF5[k]) );
         Fc2[I][J][k]=-Fc4[I][J+1][k];
@@ -512,7 +535,7 @@ void MUSCL4(Field const U, Vector UR, Vector UL)
     double deltaR=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
     a=aL; b=bL;
     double deltaL=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
-    for(unsigned k=0;k<3;k++)
+    for(unsigned k=0;k<4;k++)
     {
         UR[k]=U[I+1][J][k]-0.5*deltaR;
         UL[k]=U[I  ][J][k]+0.5*deltaL;
@@ -568,23 +591,35 @@ void aeroConvert()
     H[I][J]=Q[I][J][3]/rho[I][J]+p[I][J]/rho[I][J];
 }
 
+double safeSqrt(double xx)
+{
+    if(xx<0) 
+    {
+            cout<<"\n\nerro sqrt! value is negative!\n\n\n";
+            getchar();
+    }
+    return sqrt(xx);
+}
+
 void print()
 {
-    FILE *fp;
-    fopen("pressure.dat", "w");
+    FILE *fp1, *fp2;
+    fp1=fopen("pressure.dat", "w");
     for(unsigned i=0; i<=maxI; i++)
         for(unsigned j=0; j<=maxJ; j++)
         {
-            fprintf(fp, "%.5f %.5f %.5f\n", mesh[i][j].x, mesh[i][j].y, p[I][J] );
+            fprintf(fp1, "%.5f %.5f %.5f\n", mesh[i][j].x, mesh[i][j].y, p[I][J] );
         } 
-    fopen("Ma.dat", "w");
+    fclose(fp1);
+
+    fp2=fopen("Ma.dat", "w");
     for(unsigned i=0; i<=maxI; i++)
         for(unsigned j=0; j<=maxJ; j++)
         {
             double Ma=sqrt(SQ(u[i][j])+SQ(v[i][j]))/sqrt(GAMMA*p[i][j]/rho[i][j]);
-            fprintf(fp, "%.5f %.5f %.5f\n", mesh[i][j].x, mesh[i][j].y, Ma );
+            fprintf(fp2, "%.5f %.5f %.5f\n", mesh[i][j].x, mesh[i][j].y, Ma );
         } 
-    fclose(fp);
+    fclose(fp2);
 }       
 
 /***************************main  **************************/
@@ -593,7 +628,7 @@ int main()
 	cout<<"Case 1 for inlet 1.8Ma; 2 for 1.5Ma\n\n Current Case: "<<caseNo<<endl;
     genMesh();
 	
-    for (int step=0;  step<=STOP_STEP; step++)
+    for (int step=0;  step<=1; step++)
     {   
         solve();                  //求解
     }
