@@ -48,6 +48,7 @@
         "iomanip": "cpp",
         "Mesh.C": "cpp",
         "utility.C": "cpp",
-        "mesh.C": "cpp"
+        "mesh.C": "cpp",
+        "Roe.C": "cpp"
     }
 }

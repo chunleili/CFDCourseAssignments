@@ -17,5 +17,8 @@ mesh.o: mesh.C main.H
 utility.o: utility.C main.H
 	g++ -c $(CFLAG) utility.C
 
+Roe.o: Roe.C main.H
+	g++ -c $(CFLAG) utility.C
+
 clean:
 	rm -rf *.o a.out *.dat

@@ -91,8 +91,54 @@ XY Mesh::getArea( Index I, Index J)
     y3=mesh[I+1][J+1].y;
     y4=mesh[I  ][J+1].y;
 
-    S.x=safeSqrt( (x1-x2)*(x1-x2)+(y2-y1)*(y2-y1) );//下侧面积S1
-    S.y=safeSqrt( (x4-x1)*(x4-x1)+(y1-y4)*(y1-y4) );//左侧面积S4
+    S.y=safeSqrt( (x1-x2)*(x1-x2)+(y2-y1)*(y2-y1) );//下侧面积S1
+    S.x=safeSqrt( (x4-x1)*(x4-x1)+(y1-y4)*(y1-y4) );//左侧面积S4
     
     return S;
+}
+
+XY Mesh::getN1(Index I, Index J)
+{
+    double x1,x2,x3,x4, y1,y2,y3,y4, S1;
+    XY N1,S; 
+    //从左下开始逆时针编号,左下点代表1,右下2,右上3,左上4
+    //左下代表本单元格坐标
+    x1=mesh[I  ][J  ].x;
+    x2=mesh[I+1][J  ].x;
+    x3=mesh[I+1][J+1].x;
+    x4=mesh[I  ][J+1].x;
+
+    y1=mesh[I  ][J  ].y;
+    y2=mesh[I+1][J  ].y;
+    y3=mesh[I+1][J+1].y;
+    y4=mesh[I  ][J+1].y;
+
+    S= getArea(I,J);
+    S1=S.y;
+    N1.x=(y2-y1)/S1;
+    N1.y=(x1-x2)/S1;
+    return N1;
+}
+
+XY Mesh::getN4(Index I, Index J)
+{
+    double x1,x2,x3,x4, y1,y2,y3,y4,S4;
+    XY N4,S; 
+    //从左下开始逆时针编号,左下点代表1,右下2,右上3,左上4
+    //左下代表本单元格坐标
+    x1=mesh[I  ][J  ].x;
+    x2=mesh[I+1][J  ].x;
+    x3=mesh[I+1][J+1].x;
+    x4=mesh[I  ][J+1].x;
+
+    y1=mesh[I  ][J  ].y;
+    y2=mesh[I+1][J  ].y;
+    y3=mesh[I+1][J+1].y;
+    y4=mesh[I  ][J+1].y;
+
+    S= getArea(I,J);
+    S4=S.x;
+    N4.x=(y1-y4)/S4;
+    N4.y=(x4-x1)/S4;
+    return N4;
 }

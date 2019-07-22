@@ -24,6 +24,8 @@ using namespace std;
                     codes\
                 }\
 }
+
+#define SQ(a) (a*a)
 /***************************define the consts ********************************/
 
 const int STOP_STEP=100;
@@ -45,11 +47,12 @@ typedef struct AERO
     double rho,u,v,VV,p,T,c,Ma;  
 }AERO;
 
-typedef struct RESIDUAL
+typedef struct FLUX
 {
     public:
-    double u,v,VV,p,E;  
-}RESIDUAL;
+    double f1,f2,f3,f4;  
+}FLUX;
+
 
 typedef XY     MeshPoint[maxI+1][maxJ+1];        //用于存储网格点坐标
 typedef double Field[maxI+1][maxJ+1][4];         //向量场,用于定义Q对象
@@ -58,40 +61,60 @@ typedef XY     Tensor[maxI+1][maxJ+1][4];        //张量场,用于定义F对象
 typedef double Vector[4];                        //表示某一单元格的参数
 typedef unsigned const Index;                    //用于传递编号,只读
 /***************************declare the funcs  **************************/
-class Mesh;
-AERO convert(Vector vec);
+AERO AeroConvert(Vector vec);
 double safeSqrt(double xx);
-void QToF(Vector Q, Vector F);
+void toFlux(Vector Q, Vector F);
 /***************************define the class  **************************/
-class FlowField
-{
-    Field Q;
-    Tensor Fc;
-    public:
-    FlowField(int caseNo);
-    void init1();
-    void init2();
-    void BC1();
-    void BC2();
-    void solve(Mesh &mesh);
-    double LTS();
-    double dt;
-    
-    private:
-    void Roe(Index I,Index J, XY dS, double dV);
-	void MUSCL(Field const U, Index I,Index J, Vector UR, Vector UL);
-	void MUSCL(ScalarField const U, Index I,Index J, double & UR, double & UL);
-    void Harten(Index I, Index J);
-};
-
 class Mesh
 {
     MeshPoint mesh;
+    XY N1,N4;
     public:
     Mesh();
     double getVolume(Index I, Index J);
     XY     getArea(Index I, Index J);
-    friend void FlowField::solve(Mesh &mesh);
-    friend void FlowField::calV(Mesh &mesh);
+    XY     getN1(Index I, Index J);
+    XY     getN4(Index I, Index J);
     void print();
 };
+
+class FlowField
+{
+    Mesh mesh;
+    Field Q;
+    Tensor Fc;
+
+    void init1();
+    void init2();
+    void BC1();
+    void BC2();
+
+    public:
+    FlowField(int caseNo);
+    void solve();
+    double LTS();
+    double dt;
+};
+
+class Roe
+{
+    Index I, J;
+    double rhoL, rhoR, uL, uR, vL, vR, HL, HR, pL, pR;   
+    double lambda1,lambda2,lambda3;
+    double Fc1, Fc4;
+    Vector F1, F234, F5;
+
+    void setFlux1();
+    void setFlux4();
+	void MUSCL(Field const U,  Vector UR, Vector UL);
+	void MUSCL(ScalarField const U,  double & UR, double & UL);
+    void Harten();
+    double calVcv1(double u_, double v_);
+    double calVcv4(double u_, double v_);
+    double calF1toF5(double Vcv);
+
+    public:
+    Roe(Index II, Index JJ);
+    XY getFlux() const;
+};
+

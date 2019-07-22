@@ -1,7 +1,7 @@
 #include"main.H"
 /***************************utility  **************************/
 //Q与Fc之间的转化
-void QToF(Vector Q, Vector F)
+void toFlux(Vector Q, Vector F)
 {
     double   u=Q[1]/Q[0];
     double   p0=convert(Q).p;
@@ -11,7 +11,7 @@ void QToF(Vector Q, Vector F)
 }
 
 //气动参数转换
-AERO convert(Vector vec)
+AERO AeroConvert(Vector vec)
 {
     AERO ff;
     double rho,u,v,VV,p,T,c,Ma;
