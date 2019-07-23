@@ -1,6 +1,6 @@
 #SRCS=assignment4.C
-OBJS:=$(wildcard *.o)
-#OBJS=assignment4.o solve.o 
+#OBJS:=$(wildcard *.o)
+OBJS=assignment4.o solve.o mesh.o utility.o Roe.o 
 CFLAG=-g -O2 -Wall -std=c++11 
 all:$(OBJS) 
 	g++ $(CFLAG) -lm $(OBJS)
