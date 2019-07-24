@@ -663,7 +663,7 @@ void aeroConvert()
         u[i][j] = Q[i][j][1] / rho[i][j];
         v[i][j] = Q[i][j][2] / rho[i][j];
         p[i][j] = (GAMMA - 1) * (Q[i][j][3] - rho[i][j] * (SQ(u[i][j]) + SQ(v[i][j])) * 0.5);
-        H[i][j] = Q[i][j][3] + p[i][j];
+        H[i][j] = (Q[i][j][3] + p[i][j])/rho[i][j];
 
         Vcv3[i][j]=N3[i][j].x * u[i][j] + N3[i][j].y * v[i][j];
         Vcv2[i][j]=N2[i][j].x * u[i][j] + N2[i][j].y * v[i][j];
