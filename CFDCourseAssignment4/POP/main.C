@@ -776,23 +776,30 @@ double safeSqrt(double xx)
 void print()
 {
     FILE *fp1, *fp2;
-    fp1=fopen("pressure.dat", "w");
-    fprintf(fp1,"x    y    pressure\n");
+    fp1=fopen("result.plt", "w");
+    fprintf(fp1, "Title=\"field\"\nVariables=\"x\",\"y\",\"rho\",
+    \"velx\",\"vely\",\"spre\",\"ttem\",\"mach\"\nZoneT=\"NOZZLE\" i=261,j=81,f=point \n"\n);
+    double Ma;
     forAll(
-            fprintf(fp1, "%.2f %.2f %.5e\n", mesh[i][j].x, mesh[i][j].y, p[I][J] );
-    );
-        
-         
+            Ma=safeSqrt( ( SQ(u[i][j])+SQ(v[i][j]) ) / (GAMMA*p[i][j]/rho[i][j]) );
+            fprintf(fp1, "%.2f %.2f %.5e %.3f\n", mesh[i][j].x, mesh[i][j].y, p[I][J], Ma );
+    ); 
     fclose(fp1);
 
-    fp2=fopen("Ma.dat", "w");
-    fprintf(fp2,"x    y    Ma\n");
+    fp2=fopen("cellGeometry.txt", "w");
+    fprintf(fp2,"I   J   x    y    volume    N1    N2   N3   N4   S1   S2   S3   S4\n");
     forAll(        
-            double Ma=safeSqrt( ( SQ(u[i][j])+SQ(v[i][j]) ) / (GAMMA*p[i][j]/rho[i][j]) );
             IJcheck(( SQ(u[i][j])+SQ(v[i][j]) ) / (GAMMA*p[i][j]/rho[i][j]), i,j );
-            fprintf(fp2, "%.2f %.2f %.3f\n", mesh[i][j].x, mesh[i][j].y, Ma );
+            fprintf(fp2, "%-3d  %-3d  %.2f %.2f %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e %.3e \n",
+            i, j, mesh[i][j].x, mesh[i][j].y, volume[i][j], N1[i][j], N2[i][j], N3[i][j], N4[i][j],
+            S1[i][j], S2[i][j], S3[i][j], S4[i][j] );
     );
     fclose(fp2);
+
+
+
+fs,
+
 }
 
 void printResidual()
