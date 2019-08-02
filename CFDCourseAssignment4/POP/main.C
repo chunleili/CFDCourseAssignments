@@ -27,8 +27,8 @@ using namespace std;
 
 #define caseNo (1)  //case1 1.8Ma, case2 1.5Ma
 /***************************define the consts ********************************/
-const int maxI=50, maxJ=10;
-const int block1=10, block2=10;
+const int maxI=500, maxJ=100;
+const int block1=100, block2=100;//注意随着maxI更改
 const int cellBegin=1, cellIEnd=maxI, cellJEnd=maxJ; //0是左下虚网格,实际网格从下标1开始,到下标maxI/J结束
 const int STOP_STEP=100;
 
@@ -139,7 +139,7 @@ void genMesh()//生成网格点,注意点要比单元格数量分别多一层
 
 void printMesh()
 {
-    fstream fout("mesh.dat");
+    ofstream fout("mesh.dat");
     fout
 	<<"Title=\"Mesh\""<<endl
 	<<"Variables=\"x\",\"y\""<<endl
@@ -377,9 +377,9 @@ void solve()
         for (I = cellBegin; I <= cellIEnd; I++)//I,J为单元编号, 只在此处变动!!
             for(J = cellBegin; J <= cellJEnd; J++)
             {   
-                cout<<"\n\n******************************************************\n";
+                //cout<<"\n\n******************************************************\n";
                 //cout<<"step= "<<step<<" a= "<<a<<"  I= "<<I<<" J= "<<J<<endl;
-                cout<<"step= "<<step<<"  I= "<<I<<" J= "<<J<<endl;
+                //cout<<"step= "<<step<<"  I= "<<I<<" J= "<<J<<endl;
 
                 if (caseNo==1) BC1();
                 else           BC2();
@@ -792,6 +792,7 @@ void printResidual()
     );
 
     fprintf(fp3, "%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
+    printf("%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
 }       
 
 
@@ -808,15 +809,16 @@ int main()
     if (caseNo == 1)   init1();
     else               init2(); 
 
-    print();//打印结果
-    cout<<"\nInitialzation done.\n"; 
-    
-    fp3=fopen("residual.dat", "wa");
+    cout<<"\nInitialzation done.\n\n"; 
+
+    fp3=fopen("residual.dat", "w");
     fprintf(fp3,"iter  continuity x-velocity y-velocity Energy\n");
     for (step=1;  step<=1; step++)
     {   
+        cout<<"step= "<<step<<endl;
         solve();                  //求解
         printResidual();
+        print();
     }
     fclose(fp3);
 
