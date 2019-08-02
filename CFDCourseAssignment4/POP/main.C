@@ -27,13 +27,16 @@ using namespace std;
 
 #define caseNo (1)  //case1 1.8Ma, case2 1.5Ma
 /***************************define the consts ********************************/
-const int maxI=500, maxJ=100;
-const int block1=100, block2=100;//注意随着maxI更改
+const int maxI=250, maxJ=50;
+const int block1=(int)(maxI*0.2+0.1), block2=(int)(maxI*0.2+0.1);//注意随着maxI更改
 const int cellBegin=1, cellIEnd=maxI, cellJEnd=maxJ; //0是左下虚网格,实际网格从下标1开始,到下标maxI/J结束
 const int STOP_STEP=100;
 
 const double RESIDUAL_LIMIT=1e-3;
 const double GAMMA=1.4;
+const double Rg=287;
+const double Cp=1004.5;//1.4/0.4*287
+const double Cv=717.5;//1004.5-287
 const double CFL=0.7;
 /***************************define the type ********************************/
 typedef struct XY
@@ -172,10 +175,10 @@ void cellGeometry()
             y3 = mesh[i + 1][j + 1].y;
             y4 = mesh[i][j + 1].y;
 
-            S1[i][j] = safeSqrt(SQ(x1 - x2) + SQ(y1 - y2)); //下侧面积S1
-            S2[i][j] = safeSqrt(SQ(x2 - x3) + SQ(y2 - y3)); //右侧面积S2
-            S3[i][j] = safeSqrt(SQ(x3 - x4) + SQ(y3 - y4)); //上侧面积S3
-            S4[i][j] = safeSqrt(SQ(x4 - x1) + SQ(y4 - y1)); //左侧面积S4
+            S1[i][j] = sqrt(SQ(x1 - x2) + SQ(y1 - y2)); //下侧面积S1
+            S2[i][j] = sqrt(SQ(x2 - x3) + SQ(y2 - y3)); //右侧面积S2
+            S3[i][j] = sqrt(SQ(x3 - x4) + SQ(y3 - y4)); //上侧面积S3
+            S4[i][j] = sqrt(SQ(x4 - x1) + SQ(y4 - y1)); //左侧面积S4
 
             //面法向单位矢量, 实际上N1.x=sin(theta), N1.y=cos(theta), 再带上方向
             N1[i][j].x = (y2 - y1) / S1[i][j];
@@ -229,13 +232,20 @@ void init1()
     //声速c=sqrt(1.4*287*300)=347.1887
     //速度u=624.9397, v=0, 密度rho=p/RT=1.176829
     //单位体积总能E=p/(GAMMA-1)+0.5*rho*(u^2+v^2)
-    forAll(
-        Q[i][j][0] = 1.176829;  //101325/(287*300)
-        Q[i][j][1] = 735.4473; //1.17*625
-        Q[i][j][2] = 0;
-        Q[i][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
-    );
-    aeroConvert();
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+        for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        {
+            p[i][j]=101325;
+            u[i][j]=624.9397;
+            v[i][j]=0;
+            rho[i][j]=1.176829;
+            H[i][j]=496662.5;//Cp*300+0.5*625*625
+
+            Q[i][j][0] = 1.176829; //101325/(287*300)
+            Q[i][j][1] = 735.4473; //1.1768*625
+            Q[i][j][2] = 0;
+            Q[i][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
+        }
 }
 
 void init2()
@@ -248,7 +258,6 @@ void init2()
         Q[i][j][2]=0;
         Q[i][j][3]=412899.3; //  101325/0.4+0.5*1.176829*520.783^2;
     );
-    aeroConvert();
 }
 
 //在最左和最下侧分别铺设一层虚网格,最上和最右侧分别铺设两层虚网格
@@ -384,6 +393,7 @@ void solve()
                 if (caseNo==1) BC1();
                 else           BC2();
                 
+                aeroConvert();//全场的Q转换给全场p,rho,u,v,H
 
                 //利用Roe格式计算通量
                 roeFlux3();
@@ -422,27 +432,32 @@ void roeFlux3()
     //利用MUSCL分裂流场变量, 并且求出Roe平均量 
     double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
     double VcvL, VcvR;
-
-    aeroConvert();//全场的Q转换给全场p,rho,u,v,H
-
+/*
     MUSCL3(rho,  rhoR, rhoL);    //带限制器的三点MUSCL插值
     MUSCL3(p,    pR,   pL  );    //注意不要越界~
     MUSCL3(u,    uR,   uL  );
     MUSCL3(v,    vR,   vL  );
     MUSCL3(H,    HR,   HL  );
     MUSCL3(Vcv3, VcvL, VcvR);   //为了方便代码重用, 分裂Vcv3后记为VcvL和VcvR
+*/
+    rhoR=rho[I][J];     rhoL=rho[I][J-1];
+    pR  =p  [I][J];     pL  =p  [I][J-1];
+    uR  =u  [I][J];     uL  =u  [I][J-1];
+    vR  =v  [I][J];     vL  =v  [I][J-1];
+    HR  =H  [I][J];     HL  =H  [I][J-1];
+    VcvR=Vcv2[I][J];    VcvL=Vcv2[I][J-1];
 
     //计算Roe平均量
-    const double denoLR=safeSqrt(rhoL)+ safeSqrt(rhoR);
-    const double L=safeSqrt(rhoL)/ denoLR;//定义两个系数
-    const double R=safeSqrt(rhoR)/ denoLR;
+    const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
+    const double L=sqrt(rhoL)/ denoLR;//定义两个系数
+    const double R=sqrt(rhoR)/ denoLR;
     
-    const double rho_=safeSqrt(rhoL*rhoR);
+    const double rho_=sqrt(rhoL*rhoR);
     const double u_  =uL*L+uR*R;
     const double v_  =vL*L+vR*R;
     const double H_  =HL*L+HR*R;
     const double q_2 =u_*u_+v_*v_;
-    const double c_  =safeSqrt((GAMMA-1)*(H_-q_2/2));
+    const double c_  =sqrt((GAMMA-1)*(H_-q_2/2));
 
     const double Vcv_=nx * u_ + ny * v_;
     check(rhoL*1.0);
@@ -486,18 +501,18 @@ void roeFlux3()
 
     //分裂Fc
     Vector QL, QR, FR, FL;
-    MUSCL3(Q,  QR,   QL  );
+    //MUSCL3(Q,  QR,   QL  );
     //toFlux3(QR, Fc3R);
     //toFlux3(QL, Fc3L);
-    FR[0] = QR[0];
-    FR[1] = QR[1]*Vcv3[I][J]+N3[I][J].x*p[I][J];
-    FR[2] = QR[2]*Vcv3[I][J]+N3[I][J].y*p[I][J];
-    FR[3] = QR[0]*H[I][J]*Vcv3[I][J];
+    FR[0] = rhoR*VcvR;
+    FR[1] = rhoR*VcvR*uR + nx*pR;
+    FR[2] = rhoR*VcvR*vR + ny*pR;
+    FR[3] = rhoR*VcvR*HR;
 
-    FL[0] = QL[0];
-    FL[1] = QL[1]*Vcv3[I][J]+N3[I][J].x*p[I][J];
-    FL[2] = QL[2]*Vcv3[I][J]+N3[I][J].y*p[I][J];
-    FL[3] = QL[0]*H[I][J]*Vcv3[I][J];
+    FL[0] = rhoL*VcvL;
+    FL[1] = rhoL*VcvL*uL + nx*pL;
+    FL[2] = rhoL*VcvL*vL + ny*pL;
+    FL[3] = rhoL*VcvL*HL;
 
     //最后算出单元IJ的对流通量Fc3
     for(unsigned k=0; k<4; k++)
@@ -554,27 +569,38 @@ void roeFlux2()
     double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
     double VcvL, VcvR;
 
-    aeroConvert();//全场的Q转换给全场p,rho,u,v,H
-
+/*
     MUSCL2(rho,  rhoR, rhoL);    //带限制器的三点MUSCL插值
     MUSCL2(p,    pR,   pL  );    //注意不要越界~
     MUSCL2(u,    uR,   uL  );
     MUSCL2(v,    vR,   vL  );
     MUSCL2(H,    HR,   HL  );
     MUSCL2(Vcv2, VcvL, VcvR);   //为了方便代码重用, 分裂Vcv后记为VcvL和VcvR
-
+*/
+    rhoR=rho[I  ][J];
+    rhoL=rho[I-1][J];
+    pR  =p  [I  ][J];
+    pL  =p  [I-1][J];
+    uR  =u  [I  ][J];
+    uL  =u  [I-1][J];
+    vR  =v  [I  ][J];
+    vL  =v  [I-1][J];
+    HR  =H  [I  ][J];
+    HL  =H  [I-1][J];
+    VcvR=Vcv2[I  ][J];
+    VcvL=Vcv2[I-1][J];
 
     //计算Roe平均量
-    const double denoLR=safeSqrt(rhoL)+ safeSqrt(rhoR);
-    const double L=safeSqrt(rhoL)/ denoLR;//定义两个系数
-    const double R=safeSqrt(rhoR)/ denoLR;
+    const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
+    const double L=sqrt(rhoL)/ denoLR;//定义两个系数
+    const double R=sqrt(rhoR)/ denoLR;
     
-    const double rho_=safeSqrt(rhoL*rhoR);
+    const double rho_=sqrt(rhoL*rhoR);
     const double u_  =uL*L+uR*R;
     const double v_  =vL*L+vR*R;
     const double H_  =HL*L+HR*R;
     const double q_2 =u_*u_+v_*v_;
-    const double c_  =safeSqrt((GAMMA-1)*(H_-q_2/2));
+    const double c_  =sqrt((GAMMA-1)*(H_-q_2/2));
 
     const double Vcv_=nx * u_ + ny * v_;
 
@@ -620,18 +646,19 @@ void roeFlux2()
 
     //分裂Fc
     Vector QL, QR, FR, FL;
-    MUSCL2(Q,  QR,   QL  );
+    //MUSCL2(Q,  QR,   QL  );
     //toFlux2(QR, FR);
     //toFlux2(QL, FL);
-    FR[0] = QR[0];
-    FR[1] = QR[1]*Vcv2[I][J]+N2[I][J].x*p[I][J];
-    FR[2] = QR[2]*Vcv2[I][J]+N2[I][J].y*p[I][J];
-    FR[3] = QR[0]*H[I][J]*Vcv2[I][J];
+    FR[0] = rhoR*VcvR;
+    FR[1] = rhoR*VcvR*uR + nx*pR;
+    FR[2] = rhoR*VcvR*vR + ny*pR;
+    FR[3] = rhoR*VcvR*HR;
 
-    FL[0] = QL[0];
-    FL[1] = QL[1]*Vcv2[I][J]+N2[I][J].x*p[I][J];
-    FL[2] = QL[2]*Vcv2[I][J]+N2[I][J].y*p[I][J];
-    FL[3] = QL[0]*H[I][J]*Vcv2[I][J];
+    FL[0] = rhoL*VcvL;
+    FL[1] = rhoL*VcvL*uL + nx*pL;
+    FL[2] = rhoL*VcvL*vL + ny*pL;
+    FL[3] = rhoL*VcvL*HL;
+
 
     //最后算出单元IJ的对流通量Fc2
     for(unsigned k=0; k<4; k++)
@@ -680,7 +707,7 @@ void MUSCL2(ScalarField const U, double & UR, double & UL)
 
 double Harten(double lambda)
 {
-    double c=safeSqrt(GAMMA*p[I][J]/rho[I][J]);
+    double c=sqrt(GAMMA*p[I][J]/rho[I][J]);
     IJcheck(GAMMA*p[I][J]/rho[I][J], I, J);
 
     double delta=0.1*c; //熵修正, Harten's entropy correction
@@ -716,18 +743,20 @@ void toFlux3(Index i, Index j)
 //因此只要进行MUSCL插值之前,就要更新一次全场气动参数
 void aeroConvert()
 {
-    forAll(
-        rho[i][j] = Q[i][j][0];
-        u[i][j] = Q[i][j][1] / rho[i][j];
-        v[i][j] = Q[i][j][2] / rho[i][j];
-        p[i][j] = (GAMMA - 1) * (Q[i][j][3] - rho[i][j] * (SQ(u[i][j]) + SQ(v[i][j])) * 0.5);
-        H[i][j] = (Q[i][j][3] + p[i][j])/rho[i][j];
+    for(unsigned i=cellBegin-1; i<=cellIEnd+2; i++)
+        for(unsigned j=cellBegin-1; j<=cellJEnd+2; j++)
+        {
+            rho[i][j] = Q[i][j][0];
+            u[i][j] = Q[i][j][1] / rho[i][j];
+            v[i][j] = Q[i][j][2] / rho[i][j];
+            p[i][j] = (GAMMA - 1) * (Q[i][j][3] - rho[i][j] * (SQ(u[i][j]) + SQ(v[i][j])) * 0.5);
+            H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];
 
-        Vcv3[i][j]=N3[i][j].x * u[i][j] + N3[i][j].y * v[i][j];
-        Vcv2[i][j]=N2[i][j].x * u[i][j] + N2[i][j].y * v[i][j];
+            Vcv3[i][j] = N3[i][j].x * u[i][j] + N3[i][j].y * v[i][j];
+            Vcv2[i][j] = N2[i][j].x * u[i][j] + N2[i][j].y * v[i][j];
 
-        IJcheck(rho[i][j]*1.0,i,j);
-        );
+            IJcheck(rho[i][j] * 1.0, i, j);
+        } 
 }
 
 double safeSqrt(double xx)
@@ -744,8 +773,8 @@ void print()
 {
     FILE *fp1, *fp2;
     double xx,yy,uu,vv,rrho,pp,TT,MMa;
-    fp1=fopen("result.plt", "w");
-    fprintf(fp1, "Title=\"Field\"\nVariables=\"x\",\"y\",\"rho\",\"u\",\"v\",\"p\",\"T\",\"Ma\"\nZone T=\"result\" i=%d,j=%d,f=point\n", maxI+1, maxJ+1);
+    fp1=fopen("result.dat", "w");
+    fprintf(fp1, "Title=\"Field\"\nVariables=\"x\",\"y\",\"rho\",\"u\",\"v\",\"p\",\"T\",\"Ma\"\nZone T=\"zone1\" i=%d,j=%d,f=point\n", maxI, maxJ);
     forAll(
         xx=mesh[i][j].x;
         yy=mesh[i][j].y;
@@ -754,8 +783,8 @@ void print()
         TT=pp/(rrho*287);
         uu=u[i][j];
         vv=v[i][j];
-        MMa=safeSqrt( ( SQ(u[i][j])+SQ(v[i][j]) ) / (GAMMA*p[i][j]/rho[i][j]) );
-        fprintf(fp1, "%.3f %.3f %.4e, %.4e, %.4e, %.4e, %.4e, %.4e \n", xx, yy, rrho, uu,vv, pp, TT, MMa );
+        MMa=sqrt( ( SQ(u[i][j])+SQ(v[i][j]) ) / (GAMMA*p[i][j]/rho[i][j]) );
+        fprintf(fp1, "%.3f %.3f %.4e %.4e %.4e %.4e %.4e %.4e \n", xx, yy, rrho, uu,vv, pp, TT, MMa );
     ); 
     fclose(fp1);
 
@@ -810,6 +839,8 @@ int main()
     else               init2(); 
 
     cout<<"\nInitialzation done.\n\n"; 
+    print();
+    return 0;
 
     fp3=fopen("residual.dat", "w");
     fprintf(fp3,"iter  continuity x-velocity y-velocity Energy\n");
