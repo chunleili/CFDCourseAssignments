@@ -228,4 +228,113 @@ void toFlux3(Index i, Index j)
             N1[i][cellJEnd+2].x=N1[i][cellJEnd+1].x=N1[i][cellJEnd].x;
             N1[i][cellJEnd+2].y=N1[i][cellJEnd+1].y=N1[i][cellJEnd].y;
         }
+
+        /*
+    MUSCL2(rho,  rhoR, rhoL);    //带限制器的三点MUSCL插值
+    MUSCL2(p,    pR,   pL  );    //注意不要越界~
+    MUSCL2(u,    uR,   uL  );
+    MUSCL2(v,    vR,   vL  );
+    MUSCL2(H,    HR,   HL  );
+    MUSCL2(Vcv2, VcvL, VcvR);   //为了方便代码重用, 分裂Vcv后记为VcvL和VcvR
+*/
+//N2方向, 用于标量的带限制器的MUSCL插值函数 ,前两个参数是输入,后两个输出, 系数k^为1/3
+void MUSCL2(ScalarField const U, double & UR, double & UL)
+{
+    const double epsilon= sqrt(volume[I][J]); //限制器参数epsilon与几何尺寸相关
+    
+    double aR=U[I+2][J]- U[I+1][J],   bR=U[I+1][J] - U[I  ][J];
+    double aL=U[I+1][J]- U[I  ][J],   bL=U[I  ][J] - U[I-1][J];
+    double a, b;
+    a=aR; b=bR;
+    double deltaR=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
+    a=aL; b=bL;
+    double deltaL=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
+    UR=U[I+1][J]-0.5*deltaR;
+    UL=U[I  ][J]+0.5*deltaL;
+}
+
+
+//N3方向, 用于标量的带限制器的三点MUSCL插值函数 ,第一个参数是输入,后两个输出, 系数k^为1/3
+void MUSCL3(ScalarField const U, double & UR, double & UL)
+{
+    const double epsilon= sqrt(volume[I][J]); //限制器参数epsilon与几何尺寸相关
+
+    double aR=U[I][J+2]-U[I][J+1], bR=U[I][J+1]-U[I][J];
+    double aL=U[I][J+1]-U[I][J],   bL=U[I][J]  -U[I][J-1];
+
+    double a=aR, b=bR;
+    double deltaR=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
+    a=aL, b=bL;
+    double deltaL=( (2*a*a+epsilon)*b+(b*b+2*epsilon)*a ) /( 2*a*a +2*b*b -a*b +3*epsilon);
+    
+    UR=U[I][J+1]-0.5*deltaR;
+    UL=U[I][J]  +0.5*deltaL;
+}
+void MUSCL3(ScalarField const U,  double & UR, double & UL);
+void MUSCL2(ScalarField const U,  double & UR, double & UL);
+//三阶显式RungeKutta法
+void solve()
+{
+    //const double alpha[3]={0.1481, 0.4, 1.0};
+    //因为含有激波,所以即使是二阶迎风也要用一阶的系数
+
+    //先定义Q0,用于保存原始的Q
+    //Field Q0;
+    //forAll(
+    //       for (unsigned k = 0; k <= 3; k++)
+    //            Q0[i][j][k] = Q[i][j][k];
+    //);
+
+    //后面每一步都先计算残差, 后根据RK公式更新W
+    double dt;
+    double rRho,rU,rV,rE;
+    //for(unsigned a=0;a<=2;a++)   //a代表荣格库塔法的每一步
+    //{
+                //利用荣格库塔法计更新流场
+                //Q[I][J][k] = Q0[I][J][k] - alpha[a] * dt / volume[I][J] * R[I][J][k];
+
+
+
+
+
+//Vcv2[i][j-1] = 2*Vcv2[i][j]-Vcv2[i+1][j];
+//Vcv3[i][j-1] = 2*Vcv3[i][j]-Vcv3[i+1][j];
+        //Vcv2[cellIEnd+2][j] = Vcv2[cellIEnd+1][j]=Vcv2[cellIEnd][j];
+        //Vcv3[cellIEnd+2][j] = Vcv3[cellIEnd+1][j]=Vcv3[cellIEnd][j];
+            //Vcv3[I][J] = N3[I][J].x * u[I][J] + N3[I][J].y * v[I][J];
+            //Vcv2[I][J] = N2[I][J].x * u[I][J] + N2[I][J].y * v[I][J];
+
+
+double safeSqrt(double xx)
+{
+    if(xx<0) 
+    {
+        cout<<"\n##Erro sqrt! Value "<<xx<<" is negative!\n";
+        //getchar();
+    }
+    return sqrt(xx);
+}
+
+/*
+        Vcv2[i][j+1] = 2*Vcv2[i][j]-Vcv2[i-1][j];
+        Vcv3[i][j+1] = 2*Vcv3[i][j]-Vcv3[i-1][j];
+
+        Vcv2[i][j+2] = 3*Vcv2[i][j]-2*Vcv2[i][j-1];
+        Vcv3[i][j+2] = 3*Vcv3[i][j]-2*Vcv3[i][j-1];
+*/
+
+
+
+double Harten(double lambda)
+{
+    double c=sqrt(GAMMA*p[I][J]/rho[I][J]);
+    //IJcheck(GAMMA*p[I][J]/rho[I][J], I, J);
+    IJcheck(p[I][J],I,J);
+    double delta=0.1*c; //熵修正, Harten's entropy correction
+    if(fabs(lambda)<=delta)
+         lambda=(lambda*lambda+ delta*delta) /(2*delta);
+    return lambda;
+
+}
+
 #endif
