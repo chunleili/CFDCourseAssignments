@@ -18,8 +18,6 @@ using namespace std;
 }
 //用以循环所有实际的单元格
 
-#define check(val) if(val<0) cout<<"\n*Check: "<<#val" = "<<val<<" is negative!\n"
-
 #define IJcheck(val,i,j) if(val<0) cout<<"\n&IJCheck: "<<#val\
 <<" ("<<i<<","<<j<<") = "<<val<<" is negative!\n"
 
@@ -74,7 +72,8 @@ void solve();
 double LTS();
 
 unsigned I, J, step;
-ScalarField rho, u, v,  p, H; 
+ScalarField rho, u, v,  p, H;
+double c; 
 
 void roeFlux();//roe格式求解通量,注意通量要比单元格数量多1
 double residualRho, residualU, residualV, residualE;
@@ -195,7 +194,6 @@ double LTS()
     double dtLocal;
     double lambdaI, lambdaJ, SI, SJ;
     XY NI, NJ;
-    double c=sqrt(GAMMA*p[I][J]/rho[I][J]);
     NI.x = 0.5 * (N3[I][J].x - N1[I][J].x);
     NI.y = 0.5 * (N3[I][J].y - N1[I][J].y);
 
@@ -242,20 +240,17 @@ void init1()
 //上下是壁面, 壁面法向速度为0,壁面切向不变 壁面无穿透边界
 void BCup()
 {
-    double nx,ny,p2,p3,pw;
+    double p2,p3,pw;
     const unsigned j=cellJEnd;
     for(unsigned i=cellBegin; i<=cellJEnd; i++)
     {
-        nx=N3[i][j].x;
-        ny=N3[i][j].y;
-
         p2=p[i][j];
         p3=p[i][j-1];
         pw=0.5*(3*p2-p3);//壁面的压力用两点外推
 
         FcJ[i][j][0]=0;       
-        FcJ[i][j][1]=pw*nx;
-        FcJ[i][j][2]=pw*ny;
+        FcJ[i][j][1]=pw*N3[i][j].x;
+        FcJ[i][j][2]=pw*N3[i][j].y;
         FcJ[i][j][3]=0;
         //虚网格的值靠外推
         for(unsigned k=0; k<=3; k++)
@@ -272,20 +267,18 @@ void BCup()
 //下壁面,只有一层虚网格
 void BCdown()
 {
-    double nx, ny, p2, p3, pw;
+    double  p2, p3, pw;
     unsigned j= cellBegin;
     for (unsigned i = cellBegin; i <= cellJEnd; i++)
     {
-        nx = N1[i][j].x;
-        ny = N1[i][j].y;
 
         p2 = p[i][j];
         p3 = p[i][j + 1];
         pw = 0.5 * (3 * p2 - p3); //壁面的压力用两点外推
 
         FcJ[i][j-1][0] = 0;
-        FcJ[i][j-1][1] = pw * nx;
-        FcJ[i][j-1][2] = pw * ny;
+        FcJ[i][j-1][1] = pw * N3[i][j].x;
+        FcJ[i][j-1][2] = pw * N3[i][j].y;
         FcJ[i][j-1][3] = 0;
 
         //虚网格的值靠外推
@@ -363,6 +356,12 @@ void solve()
         for (J = cellBegin; J <= cellJEnd; J++)
         {
             aeroConvert(I, J);
+            c=sqrt(GAMMA*p[I][J]/rho[I][J]);
+
+            IJcheck(rho[I][J] * 1.0, I,J);
+            IJcheck(p[I][J]*1.0,I,J);
+            if(p[I][J]<0) exit(1);
+            if(rho[I][J]<0) exit(2);
 
             //利用Roe格式计算通量
             roeFlux();
@@ -375,8 +374,8 @@ void solve()
                 //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
                 //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
 
-                R[I][J][k] = FcI[I][J][k] * S1[I][J] - FcI[I-1][J][k] * S2[I][J] + 
-                FcJ[I][J][k] * S3[I][J] - FcJ[I-1][J][k] * S4[I][J];
+                R[I][J][k] = FcI[I][J][k] * S2[I][J] - FcI[I-1][J][k] * S4[I][J] +
+                 FcJ[I][J][k] * S3[I][J] - FcJ[I][J-1][k] * S1[I][J];
 
                 Q[I][J][k] = Q[I][J][k] - dt / volume[I][J] * R[I][J][k];
             }
@@ -404,7 +403,7 @@ void solve()
 //Roe格式计算对流通量
 
 Vector  FR, FL;
-Vector delF1, delF234, delF5;
+Vector AARoe;
 double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
 double VcvL, VcvR;
 double nx,ny;
@@ -458,15 +457,12 @@ void ARoe()
     double lambda2=fabs(Vcv_   );
     double lambda3=fabs(Vcv_+c_); 
 
-    IJcheck(p[I][J],I,J);
-    IJcheck(rho[I][J],I,J);
     //熵修正 Harten's entropy correction
-    double c=sqrt(GAMMA*p[I][J]/rho[I][J]);
-    const double delta=0.1*c;
+    const double delta=0.05*c;
     if(fabs(lambda1)<=delta)
         lambda1=(lambda1*lambda1+ delta*delta) /(2*delta);
-    if(fabs(lambda2)<=delta)
-        lambda2=(lambda2*lambda2+ delta*delta) /(2*delta);
+    if(fabs(lambda3)<=delta)
+        lambda3=(lambda3*lambda3+ delta*delta) /(2*delta);
   
 
     //求出Roe矩阵相关值
@@ -478,6 +474,7 @@ void ARoe()
     const double delv   =vR-vL;
     const double delVcv =VcvR-VcvL;
 
+    Vector delF1, delF234, delF5;
     const double coeff1=lambda1 * (delP-rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
     delF1[0]  = coeff1 * 1;
     delF1[1]  = coeff1 * (u_-c_*nx);
@@ -497,6 +494,9 @@ void ARoe()
     delF5[2]  = coeff5 *(v_+c_*ny);    
     delF5[3]  = coeff5 *(H_+c_*Vcv_);
 
+    for(unsigned k=0; k<=3; k++)
+        AARoe[k]=delF1[k]+delF234[k]+delF5[k];
+    
     //分裂Fc
     FR[0] = rhoR*VcvR;
     FR[1] = rhoR*VcvR*uR + nx*pR;
@@ -522,13 +522,13 @@ void roeFlux()
     splitI();
     ARoe();
     for(unsigned k=0; k<4; k++)
-        FcI[I][J][k]=0.5*( FR[k] + FL[k] - (delF1[k]+delF234[k]+delF5[k]) );
+        FcI[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
     
     nx=N3[I][J].x, ny=N3[I][J].y;
     splitJ();
     ARoe();
     for(unsigned k=0; k<4; k++)
-        FcJ[I][J][k]=0.5*( FR[k] + FL[k] - (delF1[k]+delF234[k]+delF5[k]) );
+        FcJ[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
     
 }
 
@@ -542,17 +542,13 @@ void aeroConvert(Index i, Index j)
         v[i][j] = Q[i][j][2] / rho[i][j];
         p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
         H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];
-
-        IJcheck(rho[i][j] * 1.0, i, j);
-        IJcheck(p[i][j]*1.0,i,j);
-        if(p[i][j]<0) exit(1);
 }
 
 void print()
 {
     FILE *fpField;
     double xx,yy,uu,vv,rrho,pp,TT,MMa;
-    fpField=fopen("result.dat", "w");
+    fpField=fopen("field.dat", "w");
     fprintf(fpField, "Title=\"Field\"\nVariables=\"x\",\"y\",\"rho\",\
     \"u\",\"v\",\"p\",\"T\",\"Ma\"\nZone T=\"zone1\" i=%d,j=%d,f=point\n", maxI, maxJ);
     forAll(
@@ -581,7 +577,6 @@ int main()
 
     //初始化流场
     init1();
-    //else               init2(); 
 
     cout<<"\nInitialzation done.\n\n"; 
 
@@ -592,8 +587,8 @@ int main()
 
     for (step=1;  step<=10; step++)
     {   
-        cout<<"step= "<<step<<endl;
         printf("p[2][1]= %f\n", p[2][1]);
+        cout<<"step= "<<step<<endl;
         solve();                  //求解
         fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
         printf("%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);

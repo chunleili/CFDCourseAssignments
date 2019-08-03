@@ -336,5 +336,8 @@ double Harten(double lambda)
     return lambda;
 
 }
+#define check(val) if(val<0) cout<<"\n*Check: "<<#val" = "<<val<<" is negative!\n"
+
+    //else               init2(); 
 
 #endif
