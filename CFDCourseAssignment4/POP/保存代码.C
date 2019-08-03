@@ -206,4 +206,26 @@ void toFlux3(Index i, Index j)
 //cout<<"\n\n******************************************************\n";
 //cout<<"step= "<<step<<" a= "<<a<<"  I= "<<I<<" J= "<<J<<endl;
 //cout<<"step= "<<step<<"  I= "<<I<<" J= "<<J<<endl;
+
+
+        //左边
+        for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        {
+            N1[cellBegin-1][j].x=N1[cellBegin][j].x;
+            N1[cellBegin-1][j].y=N1[cellBegin][j].y;
+        }
+
+        //右边
+        for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        {
+            N1[cellIEnd+2][j].x=N1[cellIEnd+1][j].x=N1[cellIEnd][j].x;
+            N1[cellIEnd+2][j].y=N1[cellIEnd+1][j].y=N1[cellIEnd][j].y;
+        }
+
+        //上边
+        for(unsigned i=cellBegin; i<=cellIEnd ;i++)
+        {
+            N1[i][cellJEnd+2].x=N1[i][cellJEnd+1].x=N1[i][cellJEnd].x;
+            N1[i][cellJEnd+2].y=N1[i][cellJEnd+1].y=N1[i][cellJEnd].y;
+        }
 #endif

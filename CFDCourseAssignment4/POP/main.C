@@ -202,7 +202,6 @@ void cellGeometry()
         }    
 
         //虚网格也需要计算几何参数,直接赋予相邻网格的参数即可
-
 }
 
 /**********************LTS********************************/
@@ -256,9 +255,9 @@ void init1()
 
 //在最左和最下侧分别铺设一层虚网格,最上和最右侧分别铺设两层虚网格
 //0代表左下虚网格, maxI/J+1和maxI/J+2代表右上虚网格, 实际网格1~max, 共max个
-void BCup()//上壁面
+//上下是壁面, 壁面法向速度为0,壁面切向不变 壁面无穿透边界
+void BCup()
 {
-    //上下是壁面, 壁面法向速度为0,壁面切向不变 壁面无穿透边界
     double nx,ny,p2,p3,pw;
     const unsigned j=cellJEnd;
     for(unsigned i=cellBegin; i<=cellJEnd; i++)
@@ -291,10 +290,9 @@ void BCup()//上壁面
     }
 }
 
+//下壁面,只有一层虚网格
 void BCdown()
 {
-    //上下是壁面, 壁面法向速度为0,壁面切向不变 壁面无穿透边界
-    //下壁面,只有一层虚网格
     double nx, ny, p2, p3, pw;
     unsigned j= cellBegin;
     for (unsigned i = cellBegin; i <= cellJEnd; i++)
@@ -331,14 +329,12 @@ void BCdown()
     }
 }
 
+//入口维持1.8Ma, 出口用0梯度外推出来;
 void BCright()
 {
-    //入口维持1.8Ma, 出口用0梯度外推出来;
+    //出口虚网格
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
-        //入口虚网格不用变(初始化时候已经给定)
-
-        //出口虚网格
         for (unsigned k = 0; k < 4; k++)
         {
             Q[cellIEnd+2][j][k] = Q[cellIEnd+1][j][k] = Q[cellIEnd][j][k];
@@ -347,6 +343,24 @@ void BCright()
         aeroConvert(cellIEnd+1,j);
         Vcv2[cellIEnd+2][j] = Vcv2[cellIEnd+1][j]=Vcv2[cellIEnd][j];
         Vcv3[cellIEnd+2][j] = Vcv3[cellIEnd+1][j]=Vcv3[cellIEnd][j];
+    }
+}
+
+void BCleft()
+{
+    unsigned i=cellBegin-1;
+    for(unsigned j=cellBegin; j<=cellJEnd; j++)
+    {
+        p[i][j] = 101325;
+        u[i][j] = 624.9397;
+        v[i][j] = 0;
+        rho[i][j] = 1.176829;
+        H[i][j] = 496662.5; //Cp*300+0.5*625*625
+
+        Q[i][j][0] = 1.176829; //101325/(287*300)
+        Q[i][j][1] = 735.4473; //1.1768*625
+        Q[i][j][2] = 0;
+        Q[i][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
     }
 }
 
@@ -370,11 +384,12 @@ void solve()
     double rRho,rU,rV,rE;
     //for(unsigned a=0;a<=2;a++)   //a代表荣格库塔法的每一步
     //{
-        //BCleft//不用变
-
+        BCleft();
+        BCdown();
+        BCup();
+        BCright();
         for (I = cellBegin; I <= cellIEnd; I++)//I,J为单元编号, 只在此处变动!!
         {
-            BCdown();
             for(J = cellBegin; J <= cellJEnd; J++)
             {   
                 aeroConvert(I,J);
@@ -418,9 +433,7 @@ void solve()
                 if (residualE < rE)
                     residualE = rE;
             }
-            BCup();
         }
-        BCright();
         //}
 }
 
@@ -449,7 +462,12 @@ void roeFlux3()
     uR  =u  [I][J];     uL  =u  [I][J-1];
     vR  =v  [I][J];     vL  =v  [I][J-1];
     HR  =H  [I][J];     HL  =H  [I][J-1];
-    VcvR=Vcv2[I][J];    VcvL=Vcv2[I][J-1];
+
+    VcvR=uR[I][J]*nx+vR[I][J]*ny;
+
+    N3[I][0].x=N3[I][1].x;
+    N3[I][0].y=N3[I][1].y;
+    VcvL=uL[I][J-1]*N3[I][J-1].x+vL*N3[I][J-1].y;//虚网格的nx ny与本网格相同
 
     //计算Roe平均量
     const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
@@ -569,8 +587,11 @@ void roeFlux2()
     vL  =v  [I-1][J];
     HR  =H  [I  ][J];
     HL  =H  [I-1][J];
-    VcvR=Vcv2[I  ][J];
-    VcvL=Vcv2[I-1][J];
+
+    VcvR=uR[I][J]*nx+vR[I][J]*ny;
+    N3[I][0].x=N3[I][1].x;
+    N3[I][0].y=N3[I][1].y;
+    VcvL=uL[I][J-1]*N3[I][J-1].x+vL*N3[I][J-1].y;//虚网格的nx ny与本网格相同
 
     //计算Roe平均量
     const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
