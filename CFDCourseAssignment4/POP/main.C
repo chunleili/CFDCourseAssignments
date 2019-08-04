@@ -64,9 +64,9 @@ void genMesh();
 void printMesh();
 void cellGeometry(); 
 
-Field Q, FcI, FcJ;
+Field Q, FcI, FcJ;//右侧和上侧的对流通量的大小, 向外为正, 方向由N1~N4给定
 Field R; //R for Residual, 残差
-//对流通量, 逆时针顺序依次为下右上左, 向外为正, 只储存其大小, 方向由N1~N4给定
+
 void init1();
 void solve();
 double LTS();
@@ -264,19 +264,22 @@ void BCup()
     }
 }
 
+FILE* fpDe;
+
 //下壁面,只有一层虚网格
 void BCdown()
 {
+    fpDe=fopen("debug.txt","w");
+
     double  p2, p3, pw;
     unsigned j= cellBegin;
     for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
-
         p2 = p[i][j];
         p3 = p[i][j + 1];
         pw = 0.5 * (3 * p2 - p3); //壁面的压力用两点外推
 
-        FcJ[i][j-1][0] = 0;
+        FcJ[i][j-1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
         FcJ[i][j-1][1] = pw * N3[i][j].x;
         FcJ[i][j-1][2] = pw * N3[i][j].y;
         FcJ[i][j-1][3] = 0;
@@ -285,18 +288,16 @@ void BCdown()
         for (unsigned k = 0; k <= 3; k++)
         {
             Q[i][j - 1][k] = 2 * Q[i][j][k] - Q[i][j + 1][k];
+            fprintf(fpDe,"%d %d %f\n",i,k,FcJ[i][0][k]);
         }
         aeroConvert(i, j - 1);
-
-
-        if (rho[i][j - 1] < 0)
-        {
-            cout << "\nhere! rho<0 i=" << i << " j=" << j - 1 << " rho=" << rho[i][j - 1] << endl;
-            printf("\nQ[i][0]=%f  %f  %f  %f\n", Q[i][0][0], Q[i][0][1], Q[i][0][2], Q[i][0][3]);
-            printf("\nQ[i][1]=%f  %f  %f  %f\n", Q[i][1][0], Q[i][1][1], Q[i][1][2], Q[i][1][3]);
-            printf("\nQ[i][2]=%f  %f  %f  %f\n", Q[i][2][0], Q[i][2][1], Q[i][2][2], Q[i][2][3]);
-            exit(0);
-        }
+        /*
+      rho[i][j] = rho[i][j-1];
+        u[i][j] = u[i][j-1];
+        v[i][j] = v[i][j-1];
+        p[i][j] = p[i][j-1];
+        H[i][j] = H[i][j-1];
+        */
     }
 }
 
@@ -304,6 +305,7 @@ void BCdown()
 void BCright()
 {
     //出口虚网格
+    const unsigned i=cellIEnd;
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
         for (unsigned k = 0; k < 4; k++)
@@ -312,6 +314,13 @@ void BCright()
         }
         aeroConvert(cellIEnd+2,j);
         aeroConvert(cellIEnd+1,j);
+        /*
+      rho[i+2][j] =rho[i+1][j] =rho[i][j];
+        u[i+2][j] =  u[i+1][j] =  u[i][j];
+        v[i+2][j] =  v[i+1][j] =  v[i][j];
+        p[i+2][j] =  p[i+1][j] =  p[i][j];
+        H[i+2][j] =  H[i+1][j] =  H[i][j];
+        */
     }
 }
 
@@ -342,7 +351,6 @@ void BCleft()
 
 
 /**********************solve********************************/
-//三阶显式RungeKutta法
 void solve()
 {
     double dt;
@@ -351,10 +359,12 @@ void solve()
     BCup();
     BCright();
     BCleft();
+
     for (I = cellBegin; I <= cellIEnd; I++) //I,J为单元编号, 只在此处变动!!
     {
         for (J = cellBegin; J <= cellJEnd; J++)
         {
+
             c=sqrt(GAMMA*p[I][J]/rho[I][J]);
 
             IJcheck(rho[I][J] * 1.0, I,J);
@@ -378,8 +388,7 @@ void solve()
 
                 Q[I][J][k] = Q[I][J][k] - dt / volume[I][J] * R[I][J][k];
             }
-            
-            aeroConvert(I, J);
+            aeroConvert(I,J);
 
             //记录残差
             rRho = fabs(R[I][J][0]);
@@ -519,18 +528,31 @@ void roeFlux()
     N3[0][J].x=N3[1][J].x; N3[0][J].y=N3[1][J].y;
     N2[0][J].x=N2[1][J].x; N2[0][J].y=N2[1][J].y;
 
-    nx=N2[I][J].x, ny=N2[I][J].y;
+    nx=N2[I][J].x; ny=N2[I][J].y;
     splitI();
     ARoe();
     for(unsigned k=0; k<4; k++)
         FcI[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
     
-    nx=N3[I][J].x, ny=N3[I][J].y;
+    nx=N3[I][J].x; ny=N3[I][J].y;
     splitJ();
     ARoe();
     for(unsigned k=0; k<4; k++)
         FcJ[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
-    
+    /*
+    if(J==1)
+    {
+        double p2, p3, pw;
+        p2 = p[I][J];
+        p3 = p[I][J + 1];
+        pw = 0.5 * (3 * p2 - p3); //壁面的压力用两点外推
+
+        FcJ[I][J][0] = 0;     
+        FcJ[I][J][1] = pw * N3[I][J].x;
+        FcJ[I][J][2] = pw * N3[I][J].y;
+        FcJ[I][J][3] = 0;
+    }
+    */
 }
 
  
@@ -538,11 +560,11 @@ void roeFlux()
 //将Q转化为rho u v p H 
 void aeroConvert(Index i, Index j)
 {
-        rho[i][j] = Q[i][j][0];
-        u[i][j] = Q[i][j][1] / rho[i][j];
-        v[i][j] = Q[i][j][2] / rho[i][j];
-        p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
-        H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];
+    rho[i][j] = Q[i][j][0];
+    u[i][j] = Q[i][j][1] / rho[i][j];
+    v[i][j] = Q[i][j][2] / rho[i][j];
+    p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
+    H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];
 }
 
 void print()
@@ -588,7 +610,7 @@ int main()
 
     for (step=1;  step<=2; step++)
     {   
-        printf("p[2][1]= %f\n", p[2][1]);
+        printf("p[50][1]= %f\n", p[50][1]);
         cout<<"step= "<<step<<endl;
         solve();                  //求解
         fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
