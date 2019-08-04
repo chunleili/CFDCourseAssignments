@@ -242,7 +242,7 @@ void BCup()
 {
     double p2,p3,pw;
     const unsigned j=cellJEnd;
-    for(unsigned i=cellBegin; i<=cellJEnd; i++)
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
     {
         p2=p[i][j];
         p3=p[i][j-1];
@@ -269,7 +269,7 @@ void BCdown()
 {
     double  p2, p3, pw;
     unsigned j= cellBegin;
-    for (unsigned i = cellBegin; i <= cellJEnd; i++)
+    for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
 
         p2 = p[i][j];
@@ -355,7 +355,6 @@ void solve()
     {
         for (J = cellBegin; J <= cellJEnd; J++)
         {
-            aeroConvert(I, J);
             c=sqrt(GAMMA*p[I][J]/rho[I][J]);
 
             IJcheck(rho[I][J] * 1.0, I,J);
@@ -379,6 +378,8 @@ void solve()
 
                 Q[I][J][k] = Q[I][J][k] - dt / volume[I][J] * R[I][J][k];
             }
+            
+            aeroConvert(I, J);
 
             //记录残差
             rRho = fabs(R[I][J][0]);
@@ -585,7 +586,7 @@ int main()
     fpR=fopen("residual.dat", "w");
     fprintf(fpR,"iter  continuity x-velocity y-velocity Energy\n");
 
-    for (step=1;  step<=10; step++)
+    for (step=1;  step<=2; step++)
     {   
         printf("p[2][1]= %f\n", p[2][1]);
         cout<<"step= "<<step<<endl;
