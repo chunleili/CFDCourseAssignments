@@ -270,11 +270,6 @@ void BCup()
         //pw=0.5*(3*p[i][j]-p[i][j-1]);//壁面的压力用两点外推
         pw=p[i][j];
 
-        //FcJ[i][j][0]=0;       
-        //FcJ[i][j][1]=pw*N3[i][j].x;
-        //FcJ[i][j][2]=pw*N3[i][j].y;
-        //FcJ[i][j][3]=0;
-
         FcJ[i][j][0]=0;       
         FcJ[i][j][1]=0;
         FcJ[i][j][2]=pw;
@@ -288,8 +283,6 @@ void BCup()
             Q[i][j+1][k]=Q[i][j][k];
             Q[i][j+2][k]=Q[i][j][k];
         }
-        //aeroConvert(i,j+2);
-        //aeroConvert(i,j+1);
         extrapolation(i,j,i,j+1);
         extrapolation(i,j,i,j+2);
 */
@@ -365,26 +358,26 @@ void BCright()
 */
 void BCleft()
 {
-    const unsigned i=0;//虚网格
+    //const unsigned i=0;//虚网格
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
-        p[i][j] = 101325;
-        u[i][j] = 624.9397;
-        v[i][j] = 0;
-      rho[i][j] = 1.176829;
-        H[i][j] = 496662.5; //Cp*300+0.5*625*625
-
-        Q[i][j][0] = 1.176829; //101325/(287*300)
-        Q[i][j][1] = 735.447162211; //1.1768*625
-        Q[i][j][2] = 0;
-        Q[i][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
-
+        p[0][j] = 101325;
+        u[0][j] = 624.9397;
+        v[0][j] = 0;
+      rho[0][j] = 1.176829;
+        H[0][j] = 496662.5; //Cp*300+0.5*625*625
+/*
+        Q[0][j][0] = 1.176829; //101325/(287*300)
+        Q[0][j][1] = 735.447162211; //1.1768*625
+        Q[0][j][2] = 0;
+        Q[0][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
+*/
         const double nx=1, ny=0;
         const double Vcv0=624.9397;
-        FcI[i][j][0]=rho0*Vcv0;
-        FcI[i][j][1]=rho0*u0*Vcv0+p0*nx;
-        FcI[i][j][2]=rho0*v0*Vcv0+p0*ny;
-        FcI[i][j][3]=rho0*H0*Vcv0;
+        FcI[0][j][0]=rho0*Vcv0;
+        FcI[0][j][1]=rho0*u0*Vcv0+p0*nx;
+        FcI[0][j][2]=rho0*v0*Vcv0+p0*ny;
+        FcI[0][j][3]=rho0*H0*Vcv0;
   
     }
 }
@@ -462,7 +455,7 @@ void solve()
 
 /**********************Roe********************************/
 //Roe格式计算对流通量
-Vector  FR, FL;
+Vector FR, FL;
 Vector AARoe;
 double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
 double VcvL, VcvR;
@@ -470,80 +463,71 @@ double nx,ny;
 
 void ARoe()
 {
-    //计算Roe平均量
-    const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
-    const double L=sqrt(rhoL)/ denoLR;//定义两个系数
-    const double R=sqrt(rhoR)/ denoLR;
-    
-    const double rho_=sqrt(rhoL*rhoR);
-    const double u_  =uL*L+uR*R;
-    const double v_  =vL*L+vR*R;
-    const double H_  =HL*L+HR*R;
-    const double q_2 =u_*u_+v_*v_;
-    const double c_  =sqrt((GAMMA-1)*(H_-q_2/2.0));
+    double delP = pR - pL;
+    double delRho = rhoR - rhoL;
+    double delu = uR - uL;
+    double delv = vR - vL;
+    double delVcv = VcvR - VcvL;
 
-    const double Vcv_=nx * u_ + ny * v_;
+    double denoLR = sqrt(rhoL) + sqrt(rhoR);
+    double Lcof = sqrt(rhoL) / denoLR; //定义两个系数
+    double Rcof = sqrt(rhoR) / denoLR;
 
-    IJcheck(rhoL, I, J);
-    IJcheck(rhoR, I, J);
-    IJcheck((H_-q_2/2), I, J);
+    double rho_ = sqrt(rhoL * rhoR);
+    double u_ = uL * Lcof + uR * Rcof;
+    double v_ = vL * Lcof + vR * Rcof;
+    double H_ = HL * Lcof + HR * Rcof;
+    double q_2 = u_ * u_ + v_ * v_;
+    double c_ = sqrt((GAMMA - 1) * (H_ - q_2 / 2.0));
 
-   //计算lambda
-    double lambda1=fabs(Vcv_-c_);
-    double lambda2=fabs(Vcv_   );
-    double lambda3=fabs(Vcv_+c_); 
+    double Vcv_ = nx * u_ + ny * v_;
+
+    if (H_ - q_2 / 2 < 0)
+    {
+        printf("\nH_-q_2<0!!\n"); //exit(1);
+    }
+
+    //计算lambda
+    double lambda1 = fabs(Vcv_ - c_);
+    double lambda2 = fabs(Vcv_);
+    double lambda3 = fabs(Vcv_ + c_);
 
     //熵修正 Harten's entropy correction
-    const double delta=0.05*c;
-    if(fabs(lambda1)<=delta)
-        lambda1=(lambda1*lambda1+ delta*delta) /(2*delta);
-    if(fabs(lambda2)<=delta)
-        lambda2=(lambda2*lambda2+ delta*delta) /(2*delta);
-    if(fabs(lambda3)<=delta)
-        lambda3=(lambda3*lambda3+ delta*delta) /(2*delta);
-  
+    double delta = 0.05 * c;
+    if (fabs(lambda1) <= delta)
+        lambda1 = (lambda1 * lambda1 + delta * delta) / (2 * delta);
+    if (fabs(lambda2) <= delta)
+        lambda2 = (lambda2 * lambda2 + delta * delta) / (2 * delta);
+    if (fabs(lambda3) <= delta)
+        lambda3 = (lambda3 * lambda3 + delta * delta) / (2 * delta);
 
     //求出Roe矩阵相关值
-        //delu,delv,delw代表三个分量, delVcv代表大写Vcv的delta
-        //lambda123分别是是Vcv-c, Vcv, Vcv+c
-    const double delP   =pR-pL;
-    const double delRho =rhoR-rhoL;
-    const double delu   =uR-uL;
-    const double delv   =vR-vL;
-    const double delVcv =VcvR-VcvL;
+    //lambda123分别是是Vcv-c, Vcv, Vcv+c
 
-    Vector delF1, delF234, delF5;
-    const double coeff1=lambda1 * (delP-rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
-    delF1[0]  = coeff1 * 1;
-    delF1[1]  = coeff1 * (u_-c_*nx);
-    delF1[2]  = coeff1 * (v_-c_*ny);
-	delF1[3]  = coeff1 * (H_-c_*Vcv_);
+    double delF1[4], delF234[4], delF5[4];
+    const double coeff1 = lambda1 * (delP - rho_ * c_ * delVcv) / (2 * c_ * c_); //定义系数以减少计算量
+    delF1[0] = coeff1 * 1;
+    delF1[1] = coeff1 * (u_ - c_ * nx);
+    delF1[2] = coeff1 * (v_ - c_ * ny);
+    delF1[3] = coeff1 * (H_ - c_ * Vcv_);
 
-    const double coeff2=lambda2 *( delRho-delP/SQ(c_) );
-    const double coeff3=lambda2 * rho_;
-    delF234[0]= coeff2; 
-    delF234[1]= coeff2 * u_  + coeff3*(delu - delVcv*nx);
-    delF234[2]= coeff2 * v_  + coeff3*(delv - delVcv*ny);                
-    delF234[3]= coeff2 * q_2/2.0 + coeff3*(u_*delu + v_*delv - Vcv_*delVcv);
-    
-    const double coeff5=lambda3 * (delP+rho_*c_*delVcv)/(2*SQ(c_));
-    delF5[0]  = coeff5 *1;
-    delF5[1]  = coeff5 *(u_+c_*nx);
-    delF5[2]  = coeff5 *(v_+c_*ny);    
-    delF5[3]  = coeff5 *(H_+c_*Vcv_);
+    const double coeff2 = lambda2 * (delRho - delP / (c_ * c_));
+    const double coeff3 = lambda2 * rho_;
+    delF234[0] = coeff2;
+    delF234[1] = coeff2 * u_ + coeff3 * (delu - delVcv * nx);
+    delF234[2] = coeff2 * v_ + coeff3 * (delv - delVcv * ny);
+    delF234[3] = coeff2 * q_2 / 2.0 + coeff3 * (u_ * delu + v_ * delv - Vcv_ * delVcv);
 
-    for(unsigned k=0; k<=3; k++)
-    {
-        AARoe[k]=delF1[k]+delF234[k]+delF5[k];
-        /*
-        if(delF1[k]<0 || delF234[k]<0 || delF5[k]<0) 
-        {
-            printf("\ndelF<0! (%d,%d)\n",I,J);
-            exit(5);
-        }
-        */
-    }
-    
+    const double coeff5 = lambda3 * (delP + rho_ * c_ * delVcv) / (2 * c_ * c_);
+    delF5[0] = coeff5 * 1;
+    delF5[1] = coeff5 * (u_ + c_ * nx);
+    delF5[2] = coeff5 * (v_ + c_ * ny);
+    delF5[3] = coeff5 * (H_ + c_ * Vcv_);
+
+    for (unsigned k = 0; k <= 3; k++)
+        AARoe[k] = (delF1[k] + delF234[k] + delF5[k]);
+
+
     //分裂Fc
     FR[0] = rhoR*VcvR;
     FR[1] = rhoR*VcvR*uR + nx*pR;
@@ -566,7 +550,7 @@ void splitI()
     HR  =H  [I  ][J];   HL  =H  [I-1][J];
 
     VcvR=uR*nx+vR*ny;
-    VcvL=uL*N2[I-1][J].x+vL*N2[I-1][J].y;
+    VcvL=uL*N4[I][J].x+vL*N4[I][J].y;
 }
 
 void splitJ()
@@ -578,19 +562,12 @@ void splitJ()
     HR  =H  [I][J];     HL  =H  [I][J-1];
 
     VcvR=uR*nx+vR*ny;
-    VcvL=uL*N3[I][J-1].x+vL*N3[I][J-1].y;
+    VcvL=uL*N1[I][J].x+vL*N1[I][J].y;
 }
 
 
 void roeFlux()
 {   
-    //虚网格的nx ny与相邻网格相同
-    N3[I][0].x=N3[I][1].x; N3[I][0].y=N3[I][1].y;
-    N2[I][0].x=N2[I][1].x; N2[I][0].y=N2[I][1].y;
-
-    N3[0][J].x=N3[1][J].x; N3[0][J].y=N3[1][J].y;
-    N2[0][J].x=N2[1][J].x; N2[0][J].y=N2[1][J].y;
-
     nx=N2[I][J].x; ny=N2[I][J].y;
     splitI();
     ARoe();
@@ -648,7 +625,6 @@ void print()
 }   
 
 
-
 /***************************main  **************************/
 int main()
 {  
@@ -664,7 +640,6 @@ int main()
 
     cout<<"\nInitialzation done.\n\n"; 
 
-
     FILE *fpR;
     fpR=fopen("residual.dat", "w");
     fprintf(fpR,"iter  continuity x-velocity y-velocity Energy\n");
@@ -672,7 +647,7 @@ int main()
     for (step=1;  step<=2; step++)
     {   
         printf("p[50][1]= %f\n", p[50][1]);
-        printf("H[51][1]=%f\n",H[51][1]);
+        printf("H[51][1]= %f\n",H[51][1]);
 
         cout<<"step= "<<step<<endl;
         solve();                  //求解
