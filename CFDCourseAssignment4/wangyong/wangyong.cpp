@@ -16,9 +16,7 @@ double sli[330][71], slj[331][71], area[330][71];
 double pho1[331][71], pre1[331][71], vx1[331][71], vy1[331][71], T1[331][71], ma1[331][71];
 
 double total_pre1[331][71], total_T1[331][71];
-double Uir[331][71], Uil[331][71], Ujr[331][71], Ujl[331][71], H[331][71], Fjr[331][71][4], Fjl[331][71][4], Fir[331][71][4], Fil[331][71][4];
-double shengsu, pho_ba, vx1_ba, vy1_ba, H_ba, U_ba, lanmeta1, lanmeta2, lanmeta3;
-double beta1, beta2, beta3, beta4, beta5, beta6, beta7;
+double  H[331][71], Fjr[331][71][4], Fjl[331][71][4], Fir[331][71][4], Fil[331][71][4];
 double AQi[331][71][4], AQj[331][71][4], Flux[331][71][4], Q[331][71][4];
 double resm1, resave[4], imax, jmax, tyj, txj, tyi, txi, tsli, tslj, vi, vj, sonic, chvel, dt, tres1, real[331];
 double vnorm, vtemp, maxflux, maxflux2, maxflux3, maxflux4;
@@ -64,6 +62,7 @@ void mesh_generation()
 			nodes[i][j][1] = 0.583585301908299 / 70 * j;
 		}
 	}
+
 }
 void initialize()
 {
@@ -186,7 +185,6 @@ void boundary_conditions()
 		pre1[i][0] = pre1[i][1];
 		T1[i][0] = pre1[i][0] / pho1[i][0] / R;
 		ma1[i][0] = sqrt(vx1[i][0] * vx1[i][0] + vy1[i][0] * vy1[i][0]) / sqrt(gama * R * T1[i][0]);
-		//	fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",vx1[i][0],pho1[i][0],pre1[i][0],ma1[i][0],vy1[i][0],T1[i][0]);
 	}
 
 	////////////////////////////
@@ -459,7 +457,7 @@ dtGlobal=100;
     		vx1[i][j] = Q[i][j][1] / pho1[i][j];
     		vy1[i][j] = Q[i][j][2] / pho1[i][j];
     		pre1[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*pho1[i][j] * ( SQ(vx1[i][j]) + SQ(vy1[i][j]) ) );
-    		H[i][j] = (Q[i][j][3] + pho1[i][j]) / pho1[i][j];  
+    		H[i][j] = (Q[i][j][3] + pre1[i][j]) / pho1[i][j];  
 
 		}
 	} /////////////////
