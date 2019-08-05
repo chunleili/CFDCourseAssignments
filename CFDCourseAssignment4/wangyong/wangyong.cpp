@@ -409,29 +409,29 @@ void roe() //利用roe格式求解
 }
 
 //LTS=LocalTimeStepping,当地时间步法,返回当地时间步
-/*
+
 double LTS()
 {
     double dtLocal;
     double lambdaI, lambdaJ, SI, SJ;
     double NI[2], NJ[2];
-    NI[0] = 0.5 * (N3[I][J][0] - N1[I][J][0]);
-    NI[1] = 0.5 * (N3[I][J][1] - N1[I][J][1]);
+    NI[0] = 0.5 * (N3[i][j][0] - N1[i][j][0]);
+    NI[1] = 0.5 * (N3[i][j][1] - N1[i][j][1]);
 
-    NJ[0] = 0.5 * (N2[I][J][0] - N4[I][J][0]);
-    NJ[1] = 0.5 * (N2[I][J][1] - N4[I][J][1]);
+    NJ[0] = 0.5 * (N2[i][j][0] - N4[i][j][0]);
+    NJ[1] = 0.5 * (N2[i][j][1] - N4[i][j][1]);
 
-    SI = 0.5 * (S1[I][J] + S3[I][J]);
-    SJ = 0.5 * (S2[I][J] + S4[I][J]);
+    SI = 0.5 * (S1[i][j] + S3[i][j]);
+    SJ = 0.5 * (S2[i][j] + S4[i][j]);
 
-    lambdaI = (u[I][J] * NI[0] + v[I][J] * NI[1])+ c;
-    lambdaJ = (u[I][J] * NJ[0] + v[I][J] * NJ[1])+ c;
+    lambdaI = (u[i][j] * NI[0] + v[i][j] * NI[1])+ c;
+    lambdaJ = (u[i][j] * NJ[0] + v[i][j] * NJ[1])+ c;
 
-    dtLocal = CFL * area[I][J] / (lambdaI * SI + lambdaJ * SJ);
+    dtLocal = CFL * area[i][j] / (lambdaI * SI + lambdaJ * SJ);
 
     return dtLocal;
 }
-*/
+
 
 void iteration()
 {
@@ -443,6 +443,7 @@ dtGlobal=100;
 	{
 		for (i = 1; i < maxI; i++)
 		{
+			
 			tyj = 0.5 * (dyj[i][j] + dyj[i + 1][j]);
 			txj = 0.5 * (dxj[i][j] + dxj[i + 1][j]);
 			tslj = 0.5 * (S4[i][j] + S4[i + 1][j]);
@@ -453,6 +454,9 @@ dtGlobal=100;
 			vi = tyi * u[i][j] + txi * v[i][j];
 			sonic = sqrt(gama * pre1[i][j] / rho[i][j]);
 			chvel = fabs(vj) + fabs(vi) + sonic * (tslj + tsli);
+
+			//dt=LTS();
+
 			dt = CFL / chvel;
 			if(dtGlobal>dt) dtGlobal=dt;
 
