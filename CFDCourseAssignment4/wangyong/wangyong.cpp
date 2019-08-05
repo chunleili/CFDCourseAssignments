@@ -6,6 +6,7 @@
 #define gama 1.4
 #define R 287.06
 #define cfl 0.8
+#define SQ(a) ((a)*(a))
 FILE *fp, *fq, *fr, *fs, *fg;
 double nodes[331][71][2], nodesc1[331][71][2], nodes2[261][81][2], nodesc2[261][81][2];
 int i, j, k, m, maxi, maxj, max;
@@ -992,17 +993,18 @@ dtGlobal=100;
 			chvel = fabs(vj) + fabs(vi) + sonic * (tslj + tsli);
 			dt = cfl / chvel;
 			if(dtGlobal>dt) dtGlobal=dt;
-			//	fprintf(fp,"%.5f\n",dt);
+			
 			Q_1[i][j][0] = Q_1[i][j][0] - dt * Flux_1[i][j][0]; //迭代求解下一步Q
 			Q_1[i][j][1] = Q_1[i][j][1] - dt * Flux_1[i][j][1];
 			Q_1[i][j][2] = Q_1[i][j][2] - dt * Flux_1[i][j][2];
 			Q_1[i][j][3] = Q_1[i][j][3] - dt * Flux_1[i][j][3];
-			pho1_1[i][j] = Q_1[i][j][0];
-			vx1_1[i][j] = Q_1[i][j][1] / Q_1[i][j][0];
-			vy1_1[i][j] = Q_1[i][j][2] / Q_1[i][j][0];
-			pre1_1[i][j] = (gama - 1) * (Q_1[i][j][3] - 0.5 * pho1_1[i][j] * (vx1_1[i][j] * vx1_1[i][j] + vy1_1[i][j] * vy1_1[i][j]));
-			T1_1[i][j] = pre1_1[i][j] / pho1_1[i][j] / R;
-			ma1_1[i][j] = sqrt(vx1_1[i][j] * vx1_1[i][j] + vy1_1[i][j] * vy1_1[i][j]) / sqrt(gama * R * T1_1[i][j]);
+
+    		pho1_1[i][j] = Q_1[i][j][0];
+    		vx1_1[i][j] = Q_1[i][j][1] / pho1_1[i][j];
+    		vy1_1[i][j] = Q_1[i][j][2] / pho1_1[i][j];
+    		pre1_1[i][j] = (GAMMA - 1) * (Q_1[i][j][3] - 0.5*pho1_1[i][j] * ( SQ(vx1_1[i][j]) + SQ(vy1_1[i][j]) ) );
+    		H_1[i][j] = (Q_1[i][j][3] + pho1_1[i][j]) / pho1_1[i][j];  
+
 		}
 	} /////////////////
 

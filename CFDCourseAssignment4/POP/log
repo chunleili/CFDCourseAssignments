@@ -8,13 +8,9 @@ mesh is written in "mesh.dat"
 Initialzation done.
 
 p[50][1]= 101325.000000
-H[51][1]=496662.500000
+H[51][1]= 496662.500000
 step= 1
-1     8.8283e+00 5.5172e+03 2.0626e+02 4.3845e+06
-p[50][1]= 101324.979781
-H[51][1]=501484.226868
-step= 2
 
-&IJCheck: T (3,1) = -23.7069 is negative!
+&IJCheck: T (82,1) = -23.5518 is negative!
 
-&IJCheck: p[I][J]*1.0 (3,1) = -4459.39 is negative!
+&IJCheck: p[I][J]*1.0 (82,1) = -3064.35 is negative!

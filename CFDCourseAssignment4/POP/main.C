@@ -68,6 +68,8 @@ void print();
 MeshPoint mesh;
 ScalarField  volume, S1,S2,S3,S4; //面积, 逆时针顺序, 依次为下右上左
 VectorField  N1,N2,N3,N4;       //面法向单位矢量
+double nx,ny;
+
 void genMesh();
 void printMesh();
 void cellGeometry(); 
@@ -269,6 +271,7 @@ void BCup()
     {
         //pw=0.5*(3*p[i][j]-p[i][j-1]);//壁面的压力用两点外推
         pw=p[i][j];
+        nx=N3[i][j].x; ny=N3[i][j].y;
 
         FcJ[i][j][0]=0;       
         FcJ[i][j][1]=0;
@@ -276,13 +279,6 @@ void BCup()
         FcJ[i][j][3]=0;
 /*
         //虚网格的值靠外推
-        for(unsigned k=0; k<=3; k++)
-        {
-            //Q[i][j+1][k]=2*Q[i][j][k]-  Q[i][j-1][k];
-            //Q[i][j+2][k]=3*Q[i][j][k]-2*Q[i][j-1][k];
-            Q[i][j+1][k]=Q[i][j][k];
-            Q[i][j+2][k]=Q[i][j][k];
-        }
         extrapolation(i,j,i,j+1);
         extrapolation(i,j,i,j+2);
 */
@@ -296,33 +292,18 @@ void BCdown()
 
     double  pw;
     //const unsigned j= cellBegin;
-    double nx,ny;
     for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
         nx=N3[i][1].x; ny=N3[i][1].y;
         //pw = 0.5 * (3 * p[i][j] - p[i][j+1]); //壁面的压力用两点外推
         pw=p[i][1];
-
-        //FcJ[i][j-1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
-        //FcJ[i][j-1][1] = pw * N3[i][j].x;
-        //FcJ[i][j-1][2] = pw * N3[i][j].y;
-        //FcJ[i][j-1][3] = 0;
         
         FcJ[i][0][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
         FcJ[i][0][1] = pw*nx;
         FcJ[i][0][2] = pw*ny;
         FcJ[i][0][3] = 0;
-/*
-        //虚网格的值靠外推
-        for (unsigned k = 0; k <= 3; k++)
-        {
-            //Q[i][j - 1][k] = 2 * Q[i][j][k] - Q[i][j + 1][k];
-            Q[i][j-1][k]=Q[i][j][k];
-            //fprintf(fpDe,"%d %d %f\n",i,k,FcJ[i][0][k]);
-        }
-*/
-        //aeroConvert(i, j - 1);
-        //extrapolation(i,j,i,j-1);
+
+        //extrapolation(i,0,i,1);
       rho[i][0] = rho[i][1];
         u[i][0] =   u[i][1];
         v[i][0] =   v[i][1];
@@ -338,12 +319,7 @@ void BCright()
     const unsigned i=cellIEnd;
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
-        for (unsigned k = 0; k < 4; k++)
-        {
-            Q[i+2][j][k] = Q[i+1][j][k] = Q[i][j][k];
-        }
-        //aeroConvert(i+2,j);
-        //aeroConvert(i+1,j);
+
         //extrapolation(i,j,i+1,j);
         //extrapolation(i,j,i+2,j);
         
@@ -356,6 +332,7 @@ void BCright()
     }
 }
 */
+
 void BCleft()
 {
     //const unsigned i=0;//虚网格
@@ -366,12 +343,7 @@ void BCleft()
         v[0][j] = 0;
       rho[0][j] = 1.176829;
         H[0][j] = 496662.5; //Cp*300+0.5*625*625
-/*
-        Q[0][j][0] = 1.176829; //101325/(287*300)
-        Q[0][j][1] = 735.447162211; //1.1768*625
-        Q[0][j][2] = 0;
-        Q[0][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
-*/
+
         const double nx=1, ny=0;
         const double Vcv0=624.9397;
         FcI[0][j][0]=rho0*Vcv0;
@@ -459,7 +431,6 @@ Vector FR, FL;
 Vector AARoe;
 double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
 double VcvL, VcvR;
-double nx,ny;
 
 void ARoe()
 {
@@ -550,7 +521,7 @@ void splitI()
     HR  =H  [I  ][J];   HL  =H  [I-1][J];
 
     VcvR=uR*nx+vR*ny;
-    VcvL=uL*N4[I][J].x+vL*N4[I][J].y;
+    VcvL=uL*N2[I][J].x+vL*N2[I][J].y;
 }
 
 void splitJ()
@@ -562,7 +533,7 @@ void splitJ()
     HR  =H  [I][J];     HL  =H  [I][J-1];
 
     VcvR=uR*nx+vR*ny;
-    VcvL=uL*N1[I][J].x+vL*N1[I][J].y;
+    VcvL=uL*N3[I][J].x+vL*N3[I][J].y;
 }
 
 
@@ -590,17 +561,7 @@ void aeroConvert(Index i, Index j)
     u[i][j] = Q[i][j][1] / rho[i][j];
     v[i][j] = Q[i][j][2] / rho[i][j];
     p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
-    H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];
-/*
-    for(unsigned h=0; h<5; h++)
-    {
-        QQ[i][j][0] = rho[i][j];
-        QQ[i][j][1] = u[i][j];
-        QQ[i][j][2] = v[i][j];
-        QQ[i][j][3] = p[i][j];
-        QQ[i][j][4] = H[i][j];
-    }
-*/    
+    H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];  
 }
 
 void print()
@@ -650,7 +611,9 @@ int main()
         printf("H[51][1]= %f\n",H[51][1]);
 
         cout<<"step= "<<step<<endl;
+
         solve();                  //求解
+
         fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
         printf("%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
         print();
