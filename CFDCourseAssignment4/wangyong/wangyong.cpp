@@ -8,26 +8,18 @@
 #define cfl 0.8
 #define SQ(a) ((a)*(a))
 FILE *fp, *fq, *fr, *fs, *fg;
-double nodes[331][71][2], nodesc1[331][71][2], nodes2[261][81][2], nodesc2[261][81][2];
+double nodes[331][71][2], nodesc1[331][71][2];
 int i, j, k, m, maxi, maxj, max;
 int maxi2, maxj2, max2;
-double dyi_1[331][71], dxi_1[331][71], dyj_1[331][71], dxj_1[331][71];
-double dyi_2[261][81], dxi_2[261][81], dyj_2[261][81], dxj_2[261][81];
-double sli_1[330][71], slj_1[331][71], area_1[330][71];
-double sli_2[261][81], slj_2[261][81], area_2[261][81];
-double pho1_1[331][71], pre1_1[331][71], vx1_1[331][71], vy1_1[331][71], T1_1[331][71], ma1_1[331][71];
-double pho2_1[261][81], pre2_1[261][81], vx2_1[261][81], vy2_1[261][81], T2_1[261][81], ma2_1[261][81];
+double dyi[331][71], dxi[331][71], dyj[331][71], dxj[331][71];
+double sli[330][71], slj[331][71], area[330][71];
+double pho1[331][71], pre1[331][71], vx1[331][71], vy1[331][71], T1[331][71], ma1[331][71];
 
-double total_pre1_1[331][71], total_T1_1[331][71];
-double total_pre2_1[261][81], total_T2_1[261][81];
-double Uir_1[331][71], Uil_1[331][71], Ujr_1[331][71], Ujl_1[331][71], H_1[331][71], Fjr_1[331][71][4], Fjl_1[331][71][4], Fir_1[331][71][4], Fil_1[331][71][4];
-double Uir_2[261][81], Uil_2[261][81], Ujr_2[261][81], Ujl_2[261][81], H_2[261][81], Fjr_2[261][81][4], Fjl_2[261][81][4], Fir_2[261][81][4], Fil_2[261][81][4];
-double shengsu_1, pho_1_ba, vx1_1_ba, vy1_1_ba, H_1_ba, U_1_ba, lanmeta1_1, lanmeta2_1, lanmeta3_1;
-double shengsu_2, pho_2_ba, vx2_2_ba, vy2_2_ba, H_2_ba, U_2_ba, lanmeta1_2, lanmeta2_2, lanmeta3_2;
-double beta1_1, beta2_1, beta3_1, beta4_1, beta5_1, beta6_1, beta7_1;
-double beta1_2, beta2_2, beta3_2, beta4_2, beta5_2, beta6_2, beta7_2;
-double AQi_1[331][71][4], AQj_1[331][71][4], Flux_1[331][71][4], Q_1[331][71][4];
-double AQi_2[261][81][4], AQj_2[261][81][4], Flux_2[261][81][4], Q_2[261][81][4];
+double total_pre1[331][71], total_T1[331][71];
+double Uir[331][71], Uil[331][71], Ujr[331][71], Ujl[331][71], H[331][71], Fjr[331][71][4], Fjl[331][71][4], Fir[331][71][4], Fil[331][71][4];
+double shengsu, pho_ba, vx1_ba, vy1_ba, H_ba, U_ba, lanmeta1, lanmeta2, lanmeta3;
+double beta1, beta2, beta3, beta4, beta5, beta6, beta7;
+double AQi[331][71][4], AQj[331][71][4], Flux[331][71][4], Q[331][71][4];
 double resm1, resave[4], imax, jmax, tyj, txj, tyi, txi, tsli, tslj, vi, vj, sonic, chvel, dt, tres1, real[331];
 double vnorm, vtemp, maxflux, maxflux2, maxflux3, maxflux4;
 const double GAMMA = 1.4;
@@ -72,55 +64,6 @@ void mesh_generation()
 			nodes[i][j][1] = 0.583585301908299 / 70 * j;
 		}
 	}
-
-	//上半区
-	for (j = 0; j < 61; j++) //加密区
-	{
-		//	k=50-j;
-		for (i = 0; i < 26; i++)
-		{
-			nodes2[i][j][0] = 0.04 * i - 1;
-			nodes2[i][60 - j][1] = 1.8 - (log(j * (pow(e, a) - 1) / 60 + 1)) / a;
-		}
-		for (i = 26; i < 81; i++)
-		{
-			nodes2[i][j][0] = (log((i - 25) * (pow(e, a) - 1) / 55 + 1)) / a;
-			nodes2[i][60 - j][1] = 1.8 - (1.8 - (-0.2164147 * nodes2[i][j][0] + 0.8)) * (log(j * (pow(e, a) - 1) / 60 + 1)) / a;
-		}
-		for (i = 81; i < 161; i++) ///////////////
-		{
-			nodes2[241 - i][j][0] = 2 - (log((i - 81) * (pow(e, a) - 1) / 80 + 1)) / a;
-			nodes2[i][60 - j][1] = 1.8 - (1.8 - 0.583585301908299) * (log(j * (pow(e, a) - 1) / 60 + 1)) / a;
-		}
-		for (i = 161; i < 261; i++)
-		{
-			nodes2[i][j][0] = 0.04 * (i - 160) + 2;
-			nodes2[i][60 - j][1] = 1.8 - (1.8 - 0.583585301908299) * (log(j * (pow(e, a) - 1) / 60 + 1)) / a;
-		}
-	}
-	for (j = 61; j < 81; j++) //非加密区
-	{
-		for (i = 0; i < 26; i++)
-		{
-			nodes2[i][j][0] = 0.04 * i - 1;
-			nodes2[i][j][1] = 1.8 + 0.05 * (j - 60);
-		}
-		for (i = 26; i < 81; i++)
-		{
-			nodes2[i][j][0] = (log((i - 25) * (pow(e, a) - 1) / 55 + 1)) / a;
-			nodes2[i][j][1] = 1.8 + 0.05 * (j - 60);
-		}
-		for (i = 81; i < 161; i++) ////////////////
-		{
-			nodes2[241 - i][j][0] = 2 - (log((i - 81) * (pow(e, a) - 1) / 80 + 1)) / a;
-			nodes2[i][j][1] = 1.8 + 0.05 * (j - 60);
-		}
-		for (i = 161; i < 261; i++)
-		{
-			nodes2[i][j][0] = 0.04 * (i - 160) + 2;
-			nodes2[i][j][1] = 1.8 + 0.05 * (j - 60);
-		}
-	}
 }
 void initialize()
 {
@@ -128,24 +71,14 @@ void initialize()
 	{
 		for (i = 0; i < 331; i++)
 		{
-			vx1_1[i][j] = 400; //3
-			vy1_1[i][j] = 0;
-			pre1_1[i][j] = 101325;
-			T1_1[i][j] = 230;
-			pho1_1[i][j] = pre1_1[i][j] / T1_1[i][j] / R;
-			ma1_1[i][j] = sqrt(vx1_1[i][j] * vx1_1[i][j] + vy1_1[i][j] * vy1_1[i][j]) / sqrt(gama * R * T1_1[i][j]);
-		}
-	}
-	for (j = 0; j < 81; j++)
-	{
-		for (i = 0; i < 261; i++)
-		{
-			vx2_1[i][j] = 150;
-			vy2_1[i][j] = 0;
-			pre2_1[i][j] = 90000;
-			T2_1[i][j] = 288.2;
-			pho2_1[i][j] = pre2_1[i][j] / T2_1[i][j] / R;
-			ma2_1[i][j] = sqrt(vx2_1[i][j] * vx2_1[i][j] + vy2_1[i][j] * vy2_1[i][j]) / sqrt(gama * R * T2_1[i][j]);
+			vx1[i][j] = 400; //3
+			vy1[i][j] = 0;
+			pre1[i][j] = 101325;
+			T1[i][j] = 230;
+			pho1[i][j] = pre1[i][j] / T1[i][j] / R;
+			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
+			H[i][j] = (pre1[i][j] / (gama - 1) + 0.5 * pho1[i][j] * (pow(vy1[i][j], 2) + pow(vx1[i][j], 2)) +
+			 pre1[i][j]) / pho1[i][j];
 		}
 	}
 }
@@ -155,710 +88,279 @@ void area_caculate()
 	{
 		for (i = 0; i < 330; i++)
 		{
-			dyi_1[i][j] = nodes[i][j][1] - nodes[i + 1][j][1];
-			dxi_1[i][j] = nodes[i + 1][j][0] - nodes[i][j][0];
-			sli_1[i][j] = sqrt(dyi_1[i][j] * dyi_1[i][j] + dxi_1[i][j] * dxi_1[i][j]);
+			dyi[i][j] = nodes[i][j][1] - nodes[i + 1][j][1];
+			dxi[i][j] = nodes[i + 1][j][0] - nodes[i][j][0];
+			sli[i][j] = sqrt(dyi[i][j] * dyi[i][j] + dxi[i][j] * dxi[i][j]);
 		}
 	}
 	for (j = 0; j < 70; j++)
 	{
 		for (i = 0; i < 331; i++)
 		{
-			dyj_1[i][j] = nodes[i][j + 1][1] - nodes[i][j][1];
-			dxj_1[i][j] = nodes[i][j][0] - nodes[i][j + 1][0];
-			slj_1[i][j] = sqrt(dyj_1[i][j] * dyj_1[i][j] + dxj_1[i][j] * dxj_1[i][j]);
+			dyj[i][j] = nodes[i][j + 1][1] - nodes[i][j][1];
+			dxj[i][j] = nodes[i][j][0] - nodes[i][j + 1][0];
+			slj[i][j] = sqrt(dyj[i][j] * dyj[i][j] + dxj[i][j] * dxj[i][j]);
 		}
 	}
 	for (j = 0; j < 70; j++)
 	{
 		for (i = 0; i < 330; i++)
 		{
-			area_1[i][j] = (dyj_1[i][j] + dyj_1[i + 1][j]) * dxi_1[i][j] / 2;
+			area[i][j] = (dyj[i][j] + dyj[i + 1][j]) * dxi[i][j] / 2;
 		}
 	} ///////////////////////////////
 
-	for (j = 0; j < 81; j++)
-	{
-		for (i = 0; i < 260; i++)
-		{
-			dyi_2[i][j] = nodes2[i][j][1] - nodes2[i + 1][j][1];
-			dxi_2[i][j] = nodes2[i + 1][j][0] - nodes2[i][j][0];
-			sli_2[i][j] = sqrt(dyi_2[i][j] * dyi_2[i][j] + dxi_2[i][j] * dxi_2[i][j]);
-		}
-	}
-	for (j = 0; j < 80; j++)
-	{
-		for (i = 0; i < 261; i++)
-		{
-			dyj_2[i][j] = nodes2[i][j + 1][1] - nodes2[i][j][1];
-			dxj_2[i][j] = nodes2[i][j][0] - nodes2[i][j + 1][0];
-			slj_2[i][j] = sqrt(dyj_2[i][j] * dyj_2[i][j] + dxj_2[i][j] * dxj_2[i][j]);
-		}
-	}
-	for (j = 0; j < 80; j++)
-	{
-		for (i = 0; i < 260; i++)
-		{
-			area_2[i][j] = (dyj_2[i][j] + dyj_2[i + 1][j]) * dxi_2[i][j] / 2;
-		}
-	} //////////////////
+
 }
 
-double tao(double Ma)
-{
-	double taoma;
-	taoma = 1 / (1 + (gama - 1) * Ma * Ma / 2);
-	return taoma;
-}
+
 double pai(double Ma)
 {
 	double paima;
 	paima = pow(1 / (1 + (gama - 1) * Ma * Ma / 2), gama / (gama - 1));
 	return paima;
 }
+
 void boundary_conditions()
 {
-	//	printf("%d\n",k);
-	//	 fp=fopen("1.txt","w");
 	for (j = 1; j < 70; j++) //进口边界条件 分区1 亚音进口，一个变量外推
 	{
 
-		total_pre1_1[0][j] = 250000;
-		total_T1_1[0][j] = 330;
-		vy1_1[0][j] = 0;
-		//if (T1_1[1][j] > 330)
-		{
-			//T1_1[0][j] = 330;
-		}
-		//else
-		{
-			T1_1[0][j] = T1_1[1][j];
-		}
+		total_pre1[0][j] = 250000;
+		total_T1[0][j] = 330;
+		vy1[0][j] = 0;
+
+		T1[0][j] = T1[1][j];
 		//静温外推
-		ma1_1[0][j] = sqrt((total_T1_1[0][j] / T1_1[0][j] - 1) * 2 / (gama - 1)); //壁面速度为0
-		pre1_1[0][j] = total_pre1_1[0][j] * pai(ma1_1[0][j]);
-		pho1_1[0][j] = pre1_1[0][j] / R / T1_1[0][j];
-		vx1_1[0][j] = ma1_1[0][j] * sqrt(gama * R * T1_1[0][j]);
-		//   fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",vx1_1[330][j],pho1_1[330][j],pre1_1[330][j],ma1_1[330][j],vy1_1[330][j],T1_1[330][j]);
+		ma1[0][j] = sqrt((total_T1[0][j] / T1[0][j] - 1) * 2 / (gama - 1)); //壁面速度为0
+		pre1[0][j] = total_pre1[0][j] * pai(ma1[0][j]);
+		pho1[0][j] = pre1[0][j] / R / T1[0][j];
+		vx1[0][j] = ma1[0][j] * sqrt(gama * R * T1[0][j]);
+		
+	/*
+		pho1[0][j]=1.176829;
+		vx1[]
+		vy1[0][j] = 0;
+		*/
 	}
 
 	for (j = 1; j < 70; j++)
 	{
-		if (ma1_1[329][j] >= 1) //超音全部外推
+		if (ma1[329][j] >= 1) //超音全部外推
 		{
-			vx1_1[330][j] = vx1_1[329][j];
-			vy1_1[330][j] = vy1_1[329][j];
-			pre1_1[330][j] = pre1_1[329][j];
-			T1_1[330][j] = T1_1[329][j];
-			pho1_1[330][j] = pre1_1[330][j] / R / T1_1[330][j];
-			ma1_1[330][j] = sqrt(vx1_1[330][j] * vx1_1[330][j] + vy1_1[330][j] * vy1_1[330][j]) / sqrt(gama * R * T1_1[330][j]);
+			vx1[330][j] = vx1[329][j];
+			vy1[330][j] = vy1[329][j];
+			pre1[330][j] = pre1[329][j];
+			T1[330][j] = T1[329][j];
+			pho1[330][j] = pre1[330][j] / R / T1[330][j];
+			ma1[330][j] = sqrt(vx1[330][j] * vx1[330][j] + vy1[330][j] * vy1[330][j]) / sqrt(gama * R * T1[330][j]);
 		}
 		else //亚音3个外推   静压给定
 		{
-			pre1_1[330][j] = 85419;
-			vx1_1[330][j] = vx1_1[329][j];
-			vy1_1[330][j] = vy1_1[329][j];
-			T1_1[330][j] = T1_1[329][j];
-			pho1_1[330][j] = pre1_1[330][j] / R / T1_1[330][j];
-			ma1_1[330][j] = sqrt(vx1_1[330][j] * vx1_1[330][j] + vy1_1[330][j] * vy1_1[330][j]) / sqrt(gama * R * T1_1[330][j]);
+			pre1[330][j] = 85419;
+			vx1[330][j] = vx1[329][j];
+			vy1[330][j] = vy1[329][j];
+			T1[330][j] = T1[329][j];
+			pho1[330][j] = pre1[330][j] / R / T1[330][j];
+			ma1[330][j] = sqrt(vx1[330][j] * vx1[330][j] + vy1[330][j] * vy1[330][j]) / sqrt(gama * R * T1[330][j]);
 		}
 	}
 
 	for (i = 1; i < 151; i++) //喷管壁面边界条件
 	{
-/*
-		//vnorm=vx1_1[i][69]*dyi_1[i][70]+vy1_1[i][69]*dxi_1[i][70];
-		//	vtemp=2*vnorm/sli_1[i][70]/sli_1[i][70];
-		vnorm = sqrt(vy1_1[i][69] * vy1_1[i][69] + vx1_1[i][69] * vx1_1[i][69]);
-		vtemp = -(dyi_1[i][70]) / dxi_1[i][70];
-		vtemp = atan(vtemp);
-		pho1_1[i][70] = pho1_1[i][69];
-		vx1_1[i][70] = -vx1_1[i][69] + 2 * cos(vtemp) * vnorm;
-		vy1_1[i][70] = -vy1_1[i][69] + 2 * sin(vtemp) * vnorm;
-		//	vx1_1[i][70]=vx1_1[i][69]-vtemp*dyi_1[i][69];    //外推
-		//	vy1_1[i][70]=vy1_1[i][69]-vtemp*dxi_1[i][69];
-		pre1_1[i][70] = pre1_1[i][69];
-		T1_1[i][70] = pre1_1[i][70] / pho1_1[i][70] / R;
-		ma1_1[i][70] = sqrt(vx1_1[i][70] * vx1_1[i][70] + vy1_1[i][70] * vy1_1[i][70]) / sqrt(gama * R * T1_1[i][70]);
-*/
-		double nx=dyi_1[i][70] / sli_1[i][70];
-		double ny=dxi_1[i][70] / sli_1[i][70];
 
-		Fjl_1[i][70][0]=0;
-		Fjl_1[i][70][1]=pre1_1[i][70]*nx;
-		Fjl_1[i][70][0]=pre1_1[i][70]*ny;
-		Fjl_1[i][70][1]=0;			
+		double nx=dyi[i][70] / sli[i][70];
+		double ny=dxi[i][70] / sli[i][70];
+
+		Fjl[i][70][0]=0;
+		Fjl[i][70][1]=pre1[i][70]*nx;
+		Fjl[i][70][0]=pre1[i][70]*ny;
+		Fjl[i][70][1]=0;			
 	}
 
 	for (i = 1; i < 330; i++) //对称边界条件
 	{
-		pho1_1[i][0] = pho1_1[i][1];
-		vx1_1[i][0] = vx1_1[i][1];
-		vy1_1[i][0] = 0;
-		pre1_1[i][0] = pre1_1[i][1];
-		T1_1[i][0] = pre1_1[i][0] / pho1_1[i][0] / R;
-		ma1_1[i][0] = sqrt(vx1_1[i][0] * vx1_1[i][0] + vy1_1[i][0] * vy1_1[i][0]) / sqrt(gama * R * T1_1[i][0]);
-		//	fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",vx1_1[i][0],pho1_1[i][0],pre1_1[i][0],ma1_1[i][0],vy1_1[i][0],T1_1[i][0]);
+		pho1[i][0] = pho1[i][1];
+		vx1[i][0] = vx1[i][1];
+		vy1[i][0] = 0;
+		pre1[i][0] = pre1[i][1];
+		T1[i][0] = pre1[i][0] / pho1[i][0] / R;
+		ma1[i][0] = sqrt(vx1[i][0] * vx1[i][0] + vy1[i][0] * vy1[i][0]) / sqrt(gama * R * T1[i][0]);
+		//	fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",vx1[i][0],pho1[i][0],pre1[i][0],ma1[i][0],vy1[i][0],T1[i][0]);
 	}
 
 	////////////////////////////
-	for (j = 1; j < 80; j++) //进口边界条件 分区1 亚音进口，一个变量外推
-	{
 
-		total_pre2_1[0][j] = 101325;
-		total_T2_1[0][j] = 288.2;
-		ma2_1[0][j] = 0.5;
-		//vy1_1[0][j]=0;
-		pre2_1[0][j] = total_pre2_1[0][j] * pai(ma2_1[0][j]);
-		T2_1[0][j] = total_T2_1[0][j] * tao(ma2_1[0][j]);
-		pho2_1[0][j] = pre2_1[0][j] / T2_1[0][j] / R;
-		vy2_1[0][j] = vy2_1[1][j];
-		vx2_1[0][j] = sqrt(ma2_1[0][j] * sqrt(gama * R * T2_1[0][j]) * ma2_1[0][j] * sqrt(gama * R * T2_1[0][j]) - vy2_1[0][j] * vy2_1[0][j]);
-
-		//   fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",vx1_1[330][j],pho1_1[330][j],pre1_1[330][j],ma1_1[330][j],vy1_1[330][j],T1_1[330][j]);
-	}
-
-	for (j = 1; j < 80; j++) //////出口边界
-	{
-		if (ma2_1[259][j] >= 1) //超音全部外推
-		{
-			vx2_1[260][j] = vx2_1[259][j];
-			vy2_1[260][j] = vy2_1[259][j];
-			pre2_1[260][j] = pre2_1[259][j];
-			T2_1[260][j] = T2_1[259][j];
-			pho2_1[260][j] = pre2_1[260][j] / R / T2_1[260][j];
-			ma2_1[260][j] = sqrt(vx2_1[260][j] * vx2_1[260][j] + vy2_1[260][j] * vy2_1[260][j]) / sqrt(gama * R * T2_1[260][j]);
-		}
-		else //亚音3个外推   静压给定
-		{
-			pre2_1[260][j] = 85419;
-			vx2_1[260][j] = vx2_1[259][j];
-			vy2_1[260][j] = vy2_1[259][j];
-			T2_1[260][j] = T2_1[259][j];
-			pho2_1[260][j] = pre2_1[260][j] / R / T2_1[260][j];
-			ma2_1[260][j] = sqrt(vx2_1[260][j] * vx2_1[260][j] + vy2_1[260][j] * vy2_1[260][j]) / sqrt(gama * R * T2_1[260][j]);
-		}
-	}
-
-	for (i = 1; i < 260; i++)  //喷管壁面边界条件
-	{						   
-
-		if (vy2_1[i][79] >= 0) //出口，给一推三静压
-		{
-			pre2_1[i][80] = 85419;
-			vx2_1[i][80] = vx2_1[i][79];
-			vy2_1[i][80] = vy2_1[i][79];
-			T2_1[i][80] = T2_1[i][79];
-			pho2_1[i][80] = pre2_1[i][80] / R / T2_1[i][80];
-			ma2_1[i][80] = sqrt(vx2_1[i][80] * vx2_1[i][80] + vy2_1[i][80] * vy2_1[i][80]) / sqrt(gama * R * T2_1[i][80]);
-		}
-		else //进口 ，给三推一
-		{
-			pre2_1[i][80] = 85419;
-			ma2_1[i][80] = 0.5;
-			T2_1[i][80] = 288.2 * tao(ma2_1[i][80]);
-			vy2_1[i][80] = vy2_1[i][79];
-			pho2_1[i][80] = pre2_1[i][80] / R / T2_1[i][80];
-			vx2_1[i][80] = sqrt(ma2_1[i][80] * sqrt(gama * R * T2_1[i][80]) * ma2_1[i][80] * sqrt(gama * R * T2_1[i][80]) - vy2_1[i][80] * vy2_1[i][80]);
-		}
-	}
 	for (i = 1; i < 81; i++) //下壁面条件
 	{
-		/*
-		vnorm = sqrt(vy2_1[i][1] * vy2_1[i][1] + vx2_1[i][1] * vx2_1[i][1]);
-		vtemp = -(dyi_2[i][0]) / dxi_2[i][0];
-		vtemp = atan(vtemp);
-		pho2_1[i][0] = pho2_1[i][1];
-		vx2_1[i][0] = -vx2_1[i][1] + 2 * cos(vtemp) * vnorm;
-		vy2_1[i][0] = -vy2_1[i][1] + 2 * sin(vtemp) * vnorm;
-		//	vx2_1[i][80]=vx2_1[i][79]-vtemp*dyi_1[i][79];    //外推
-		//	vy2_1[i][80]=vy2_1[i][79]-vtemp*dxi_1[i][79];
-		pre2_1[i][0] = pre2_1[i][1];
-		T2_1[i][0] = pre2_1[i][0] / pho2_1[i][0] / R;
-		ma2_1[i][0] = sqrt(vx2_1[i][0] * vx2_1[i][0] + vy2_1[i][0] * vy2_1[i][0]) / sqrt(gama * R * T2_1[i][0]);	
-		*/
 
-		double nx=dyi_1[i][0] / sli_1[i][0];
-		double ny=dxi_1[i][0] / sli_1[i][0];
+		double nx=dyi[i][0] / sli[i][0];
+		double ny=dxi[i][0] / sli[i][0];
 
-		Fjl_1[i][0][0]=0;
-		Fjl_1[i][0][1]=pre1_1[i][0]*nx;
-		Fjl_1[i][0][0]=pre1_1[i][0]*ny;
-		Fjl_1[i][0][1]=0;	
+		Fjl[i][0][0]=0;
+		Fjl[i][0][1]=pre1[i][0]*nx;
+		Fjl[i][0][0]=pre1[i][0]*ny;
+		Fjl[i][0][1]=0;	
 
-	}
-
-	for (i = 151; i < 330; i++)
-	{
-		pho1_1[i][70] = pho2_1[i - 70][1];
-		pre1_1[i][70] = pre2_1[i - 70][1];
-		vx1_1[i][70] = vx2_1[i - 70][1];
-		vy1_1[i][70] = vy2_1[i - 70][1];
-		T1_1[i][70] = pre1_1[i][70] / pho1_1[i][70] / R;
-		ma1_1[i][70] = sqrt(vx1_1[i][70] * vx1_1[i][70] + vy1_1[i][70] * vy1_1[i][70]) / sqrt(gama * R * T1_1[i][70]);
-
-		pho2_1[i - 70][0] = pho1_1[i][69];
-		pre2_1[i - 70][0] = pre1_1[i][69];
-		vx2_1[i - 70][0] = vx1_1[i][69];
-		vy2_1[i - 70][0] = vy1_1[i][69];
-		T2_1[i - 70][0] = pre2_1[i - 70][0] / pho2_1[i - 70][0] / R;
-		ma2_1[i - 70][0] = sqrt(vx2_1[i - 70][0] * vx2_1[i - 70][0] + vy2_1[i - 70][0] * vy2_1[i - 70][0]) / sqrt(gama * R * T2_1[i - 70][0]);
 	}
 }
+
+double rhoR,rhoL,uR,uL,vR,vL,nx,ny,pR,pL,HR,HL;
+double AARoe[4];
+double FR[4], FL[4];
+double c;
+double SI, SJ;
+
+void calARoe()
+{
+
+	double VcvR = uR * nx + vR * ny, VcvL = uL * nx + vL * ny;
+
+	double delP = pR - pL;
+	double delRho = rhoR - rhoL;
+	double delu = uR - uL;
+	double delv = vR - vL;
+	double delVcv = VcvR - VcvL;
+
+	double denoLR = sqrt(rhoL) + sqrt(rhoR);
+	double Lcof = sqrt(rhoL) / denoLR; //定义两个系数
+	double Rcof = sqrt(rhoR) / denoLR;
+
+	double rho_ = sqrt(rhoL * rhoR);
+	double u_ = uL * Lcof + uR * Rcof;
+	double v_ = vL * Lcof + vR * Rcof;
+	double H_ = HL * Lcof + HR * Rcof;
+	double q_2 = u_ * u_ + v_ * v_;
+	double c_ = sqrt((GAMMA - 1) * (H_ - q_2 / 2.0));
+
+	double Vcv_ = nx * u_ + ny * v_;
+
+	if (H_ - q_2 / 2 < 0)
+	{
+		printf("\nH_-q_2<0!!\n"); //exit(1);
+	}
+
+	//计算lambda
+	double lambda1 = fabs(Vcv_ - c_);
+	double lambda2 = fabs(Vcv_);
+	double lambda3 = fabs(Vcv_ + c_);
+
+	//熵修正 Harten's entropy correction
+	double delta = 0.05 * c;
+	if (fabs(lambda1) <= delta)
+		lambda1 = (lambda1 * lambda1 + delta * delta) / (2 * delta);
+	if (fabs(lambda2) <= delta)
+		lambda2 = (lambda2 * lambda2 + delta * delta) / (2 * delta);
+	if (fabs(lambda3) <= delta)
+		lambda3 = (lambda3 * lambda3 + delta * delta) / (2 * delta);
+
+	//求出Roe矩阵相关值
+	//lambda123分别是是Vcv-c, Vcv, Vcv+c
+
+	double delF1[4], delF234[4], delF5[4];
+	const double coeff1 = lambda1 * (delP - rho_ * c_ * delVcv) / (2 * c_ * c_); //定义系数以减少计算量
+	delF1[0] = coeff1 * 1;
+	delF1[1] = coeff1 * (u_ - c_ * nx);
+	delF1[2] = coeff1 * (v_ - c_ * ny);
+	delF1[3] = coeff1 * (H_ - c_ * Vcv_);
+
+	const double coeff2 = lambda2 * (delRho - delP / (c_ * c_));
+	const double coeff3 = lambda2 * rho_;
+	delF234[0] = coeff2;
+	delF234[1] = coeff2 * u_ + coeff3 * (delu - delVcv * nx);
+	delF234[2] = coeff2 * v_ + coeff3 * (delv - delVcv * ny);
+	delF234[3] = coeff2 * q_2 / 2.0 + coeff3 * (u_ * delu + v_ * delv - Vcv_ * delVcv);
+
+	const double coeff5 = lambda3 * (delP + rho_ * c_ * delVcv) / (2 * c_ * c_);
+	delF5[0] = coeff5 * 1;
+	delF5[1] = coeff5 * (u_ + c_ * nx);
+	delF5[2] = coeff5 * (v_ + c_ * ny);
+	delF5[3] = coeff5 * (H_ + c_ * Vcv_);
+
+	for (unsigned k = 0; k <= 3; k++)
+		AARoe[k] = (delF1[k] + delF234[k] + delF5[k]);
+
+	//分裂Fc
+	FR[0] = rhoR * VcvR;
+	FR[1] = rhoR * VcvR * uR + nx * pR;
+	FR[2] = rhoR * VcvR * vR + ny * pR;
+	FR[3] = rhoR * VcvR * HR;
+
+	FL[0] = rhoL * VcvL;
+	FL[1] = rhoL * VcvL * uL + nx * pL;
+	FL[2] = rhoL * VcvL * vL + ny * pL;
+	FL[3] = rhoL * VcvL * HL;
+}
+
 void roe() //利用roe格式求解
 {
-	for (j = 1; j < 70; j++)
-	{
-		for (i = 1; i < 331; i++)
-		{
-			Uir_1[i][j] = dyj_1[i][j] / slj_1[i][j] * vx1_1[i][j] + dxj_1[i][j] / slj_1[i][j] * vy1_1[i][j]; //沿流向流动通过边界的速度
-			Uil_1[i][j] = dyj_1[i][j] / slj_1[i][j] * vx1_1[i - 1][j] + dxj_1[i][j] / slj_1[i][j] * vy1_1[i - 1][j];
-		}
-	}
-	for (j = 1; j < 71; j++)
-	{
-		for (i = 1; i < 330; i++)
-		{
-			Ujr_1[i][j] = dyi_1[i][j] / sli_1[i][j] * vx1_1[i][j] + dxi_1[i][j] / sli_1[i][j] * vy1_1[i][j]; //沿垂直流向流动通过边界的速度
-			Ujl_1[i][j] = dyi_1[i][j] / sli_1[i][j] * vx1_1[i][j - 1] + dxi_1[i][j] / sli_1[i][j] * vy1_1[i][j - 1];
-		}
-	}
-	for (j = 0; j < 71; j++)
-	{
-		for (i = 0; i < 331; i++)
-		{
-			H_1[i][j] = (pre1_1[i][j] / (gama - 1) + 0.5 * pho1_1[i][j] * (pow(vy1_1[i][j], 2) + pow(vx1_1[i][j], 2)) + pre1_1[i][j]) / pho1_1[i][j];
-		}
-	} ///////////////////////
-
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 261; i++)
-		{
-			Uir_2[i][j] = dyj_2[i][j] / slj_2[i][j] * vx2_1[i][j] + dxj_2[i][j] / slj_2[i][j] * vy2_1[i][j]; //沿流向流动通过边界的速度
-			Uil_2[i][j] = dyj_2[i][j] / slj_2[i][j] * vx2_1[i - 1][j] + dxj_2[i][j] / slj_2[i][j] * vy2_1[i - 1][j];
-		}
-	}
-	for (j = 1; j < 81; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			Ujr_2[i][j] = dyi_2[i][j] / sli_2[i][j] * vx2_1[i][j] + dxi_2[i][j] / sli_2[i][j] * vy2_1[i][j]; //沿垂直流向流动通过边界的速度
-			Ujl_2[i][j] = dyi_2[i][j] / sli_2[i][j] * vx2_1[i][j - 1] + dxi_2[i][j] / sli_2[i][j] * vy2_1[i][j - 1];
-		}
-	}
-	for (j = 0; j < 81; j++)
-	{
-		for (i = 0; i < 261; i++)
-		{
-			H_2[i][j] = (pre2_1[i][j] / (gama - 1) + 0.5 * pho2_1[i][j] * (pow(vy2_1[i][j], 2) + pow(vx2_1[i][j], 2)) + pre2_1[i][j]) / pho2_1[i][j];
-		}
-	}
-	//I方向的F求解
-/*
-	for (j = 1; j < 70; j++)
-	{
-		for (i = 1; i < 331; i++)
-		{
-			
-			Fil_1[i][j][0] = slj_1[i][j] * pho1_1[i - 1][j] * Uil_1[i][j]; //左侧对流通量
-			Fil_1[i][j][1] = slj_1[i][j] * pho1_1[i - 1][j] * vx1_1[i - 1][j] * Uil_1[i][j] + dyj_1[i][j] * pre1_1[i - 1][j];
-			Fil_1[i][j][2] = slj_1[i][j] * pho1_1[i - 1][j] * vy1_1[i - 1][j] * Uil_1[i][j] + dxj_1[i][j] * pre1_1[i - 1][j];
-			Fil_1[i][j][3] = slj_1[i][j] * pho1_1[i - 1][j] * H_1[i - 1][j] * Uil_1[i][j];
-
-			Fir_1[i][j][0] = slj_1[i][j] * pho1_1[i][j] * Uir_1[i][j]; //右侧对流通量
-			Fir_1[i][j][1] = slj_1[i][j] * pho1_1[i][j] * vx1_1[i][j] * Uir_1[i][j] + dyj_1[i][j] * pre1_1[i][j];
-			Fir_1[i][j][2] = slj_1[i][j] * pho1_1[i][j] * vy1_1[i][j] * Uir_1[i][j] + dxj_1[i][j] * pre1_1[i][j];
-			Fir_1[i][j][3] = slj_1[i][j] * pho1_1[i][j] * H_1[i][j] * Uir_1[i][j];
-			
-
-		}
-	} ///////////////
-*/
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 261; i++)
-		{
-			Fil_2[i][j][0] = slj_2[i][j] * pho2_1[i - 1][j] * Uil_2[i][j]; //左侧对流通量
-			Fil_2[i][j][1] = slj_2[i][j] * pho2_1[i - 1][j] * vx2_1[i - 1][j] * Uil_2[i][j] + dyj_2[i][j] * pre2_1[i - 1][j];
-			Fil_2[i][j][2] = slj_2[i][j] * pho2_1[i - 1][j] * vy2_1[i - 1][j] * Uil_2[i][j] + dxj_2[i][j] * pre2_1[i - 1][j];
-			Fil_2[i][j][3] = slj_2[i][j] * pho2_1[i - 1][j] * H_2[i - 1][j] * Uil_2[i][j];
-
-			Fir_2[i][j][0] = slj_2[i][j] * pho2_1[i][j] * Uir_2[i][j]; //右侧对流通量
-			Fir_2[i][j][1] = slj_2[i][j] * pho2_1[i][j] * vx2_1[i][j] * Uir_2[i][j] + dyj_2[i][j] * pre2_1[i][j];
-			Fir_2[i][j][2] = slj_2[i][j] * pho2_1[i][j] * vy2_1[i][j] * Uir_2[i][j] + dxj_2[i][j] * pre2_1[i][j];
-			Fir_2[i][j][3] = slj_2[i][j] * pho2_1[i][j] * H_2[i][j] * Uir_2[i][j];
-		}
-	}
-
-	//J方向的F求解
-	for (j = 1; j < 71; j++)
-	{
-		for (i = 1; i < 330; i++)
-		{
-
-			Fjl_1[i][j][0] = sli_1[i][j] * pho1_1[i][j - 1] * Ujl_1[i][j]; //左侧通量
-			Fjl_1[i][j][1] = sli_1[i][j] * pho1_1[i][j - 1] * vx1_1[i][j - 1] * Ujl_1[i][j] + dyi_1[i][j] * pre1_1[i][j - 1];
-			Fjl_1[i][j][2] = sli_1[i][j] * pho1_1[i][j - 1] * vy1_1[i][j - 1] * Ujl_1[i][j] + dxi_1[i][j] * pre1_1[i][j - 1];
-			Fjl_1[i][j][3] = sli_1[i][j] * pho1_1[i][j - 1] * H_1[i][j - 1] * Ujl_1[i][j];
-			
-			Fjr_1[i][j][0] = sli_1[i][j] * pho1_1[i][j] * Ujr_1[i][j]; //右侧通量
-			Fjr_1[i][j][1] = sli_1[i][j] * pho1_1[i][j] * vx1_1[i][j] * Ujr_1[i][j] + dyi_1[i][j] * pre1_1[i][j];
-			Fjr_1[i][j][2] = sli_1[i][j] * pho1_1[i][j] * vy1_1[i][j] * Ujr_1[i][j] + dxi_1[i][j] * pre1_1[i][j];
-			Fjr_1[i][j][3] = sli_1[i][j] * pho1_1[i][j] * H_1[i][j] * Ujr_1[i][j];			
-
-		}
-	} ///////////
-
-	for (j = 1; j < 81; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			Fjl_2[i][j][0] = sli_2[i][j] * pho2_1[i][j - 1] * Ujl_2[i][j]; //左侧通量
-			Fjl_2[i][j][1] = sli_2[i][j] * pho2_1[i][j - 1] * vx2_1[i][j - 1] * Ujl_2[i][j] + dyi_2[i][j] * pre2_1[i][j - 1];
-			Fjl_2[i][j][2] = sli_2[i][j] * pho2_1[i][j - 1] * vy2_1[i][j - 1] * Ujl_2[i][j] + dxi_2[i][j] * pre2_1[i][j - 1];
-			Fjl_2[i][j][3] = sli_2[i][j] * pho2_1[i][j - 1] * H_2[i][j - 1] * Ujl_2[i][j];
-
-			Fjr_2[i][j][0] = sli_2[i][j] * pho2_1[i][j] * Ujr_2[i][j]; //右侧通量
-			Fjr_2[i][j][1] = sli_2[i][j] * pho2_1[i][j] * vx2_1[i][j] * Ujr_2[i][j] + dyi_2[i][j] * pre2_1[i][j];
-			Fjr_2[i][j][2] = sli_2[i][j] * pho2_1[i][j] * vy2_1[i][j] * Ujr_2[i][j] + dxi_2[i][j] * pre2_1[i][j];
-			Fjr_2[i][j][3] = sli_2[i][j] * pho2_1[i][j] * H_2[i][j] * Ujr_2[i][j];
-		}
-	}
 
 	//计算beta与AQ
-
-	for (j = 1; j < 70; j++)
+	for (j = 1; j < 71; j++)
 	{
 		for (i = 1; i < 331; i++)
 		{   
-/*
-			pho_1_ba = sqrt(pho1_1[i - 1][j] * pho1_1[i][j]); //Roe平均定义
-			vx1_1_ba = (vx1_1[i - 1][j] * sqrt(pho1_1[i - 1][j]) + vx1_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i - 1][j]) + sqrt(pho1_1[i][j]));
-			vy1_1_ba = (vy1_1[i - 1][j] * sqrt(pho1_1[i - 1][j]) + vy1_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i - 1][j]) + sqrt(pho1_1[i][j]));
-			H_1_ba = (H_1[i - 1][j] * sqrt(pho1_1[i - 1][j]) + H_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i - 1][j]) + sqrt(pho1_1[i][j]));
-			U_1_ba = (Uil_1[i][j] * sqrt(pho1_1[i - 1][j]) + Uir_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i - 1][j]) + sqrt(pho1_1[i][j]));
-			shengsu_1 = sqrt((gama - 1) * (H_1_ba - (vx1_1_ba * vx1_1_ba + vy1_1_ba * vy1_1_ba) / 2));
-
-			lanmeta1_1 = U_1_ba;
-			lanmeta2_1 = U_1_ba - shengsu_1;
-			lanmeta3_1 = U_1_ba + shengsu_1;
-
-			if (fabs(lanmeta1_1) >= 0.1) //熵修正
-			{
-				lanmeta1_1 = fabs(lanmeta1_1);
-			}
-			else
-			{
-				lanmeta1_1 = (lanmeta1_1 * lanmeta1_1 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta2_1) >= 0.1)
-			{
-				lanmeta2_1 = fabs(lanmeta2_1);
-			}
-			else
-			{
-				lanmeta2_1 = (lanmeta2_1 * lanmeta2_1 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta3_1) >= 0.1)
-			{
-				lanmeta3_1 = fabs(lanmeta3_1);
-			}
-			else
-			{
-				lanmeta3_1 = (lanmeta3_1 * lanmeta3_1 + 0.01) / 0.2;
-			}
-
-			beta1_1 = slj_1[i][j] * lanmeta1_1 * (pho1_1[i][j] - pho1_1[i - 1][j] - (pre1_1[i][j] - pre1_1[i - 1][j]) / shengsu_1 / shengsu_1);
-			beta2_1 = slj_1[i][j] * lanmeta3_1 * (pre1_1[i][j] - pre1_1[i - 1][j] + pho_1_ba * shengsu_1 * (Uir_1[i][j] - Uil_1[i][j])) / (2 * shengsu_1 * shengsu_1);
-			beta3_1 = slj_1[i][j] * lanmeta2_1 * (pre1_1[i][j] - pre1_1[i - 1][j] - pho_1_ba * shengsu_1 * (Uir_1[i][j] - Uil_1[i][j])) / (2 * shengsu_1 * shengsu_1);
-			beta4_1 = beta1_1 + beta2_1 + beta3_1;
-			beta5_1 = shengsu_1 * (beta2_1 - beta3_1);
-			beta6_1 = slj_1[i][j] * lanmeta1_1 * pho_1_ba * (vx1_1[i][j] - vx1_1[i - 1][j] - dyj_1[i][j] / slj_1[i][j] * (Uir_1[i][j] - Uil_1[i][j]));
-			beta7_1 = slj_1[i][j] * lanmeta1_1 * pho_1_ba * (vy1_1[i][j] - vy1_1[i - 1][j] - dxj_1[i][j] / slj_1[i][j] * (Uir_1[i][j] - Uil_1[i][j]));
-
-			AQi_1[i][j][0] = beta4_1;
-			AQi_1[i][j][1] = vx1_1_ba * beta4_1 + dyj_1[i][j] / slj_1[i][j] * beta5_1 + beta6_1;
-			AQi_1[i][j][2] = vy1_1_ba * beta4_1 + dxj_1[i][j] / slj_1[i][j] * beta5_1 + beta7_1;
-			AQi_1[i][j][3] = H_1_ba * beta4_1 + U_1_ba * beta5_1 + vx1_1_ba * beta6_1 + vy1_1_ba * beta7_1 - shengsu_1 * shengsu_1 * beta1_1 / (gama - 1);
-*/
-			//计算Roe平均量
-
-			double nx=dyj_1[i][j] / slj_1[i][j];
-			double ny=dxj_1[i][j] / slj_1[i][j];
-
-			double SI=slj_1[i][j];
+			nx=dyj[i][j] / slj[i][j];
+			ny=dxj[i][j] / slj[i][j];
+			SI=slj[i][j];
 			
-			double pL = pre1_1[i - 1][j], pR = pre1_1[i][j];
-			double rhoL = pho1_1[i - 1][j], rhoR = pho1_1[i][j];
-			double uL = vx1_1[i - 1][j], uR = vx1_1[i][j];
-			double vL = vy1_1[i - 1][j], vR = vy1_1[i][j];
-			double HL = H_1[i - 1][j], HR = H_1[i][j];
+			pL = pre1[i - 1][j], pR = pre1[i][j];
+			rhoL = pho1[i - 1][j], rhoR = pho1[i][j];
+			uL = vx1[i - 1][j], uR = vx1[i][j];
+			vL = vy1[i - 1][j], vR = vy1[i][j];
+			HL = H[i - 1][j], HR = H[i][j];
 
-			double c = sqrt(GAMMA*pre1_1[i][j]/pho1_1[i][j]);
-			double T = pre1_1[i][j]/(287*pho1_1[i][j]);
+			c = sqrt(GAMMA*pre1[i][j]/pho1[i][j]);
+			double T = pre1[i][j]/(287*pho1[i][j]);
 			if (T < 0)
 			{
 				printf("\n****** T<0!! T= %f\n ", T); //exit(2);
 			}
-			double AARoe[4];
 
-			double VcvR=uR*nx+vR*ny, VcvL=uL*nx+vL*ny;
-
-			double delP = pR - pL;
-			double delRho = rhoR - rhoL;
-			double delu = uR - uL;
-			double delv = vR - vL;
-			double delVcv = VcvR - VcvL;
-			
-
-			double denoLR = sqrt(rhoL) + sqrt(rhoR);
-			double Lcof = sqrt(rhoL) / denoLR; //定义两个系数
-			double Rcof = sqrt(rhoR) / denoLR;
-
-			double rho_ = sqrt(rhoL * rhoR);
-			double u_ = uL * Lcof + uR * Rcof;
-			double v_ = vL * Lcof + vR * Rcof;
-			double H_ = HL * Lcof + HR * Rcof;
-			double q_2 = u_ * u_ + v_ * v_;
-			double c_ = sqrt((GAMMA - 1) * (H_ - q_2 / 2.0));
-
-			double Vcv_ = nx * u_ + ny * v_;
-
-			if (H_ - q_2 / 2 < 0)
-			{
-				printf("\nH_-q_2<0!!\n"); //exit(1);
-			}
-
-			//计算lambda
-			double lambda1 = fabs(Vcv_ - c_);
-			double lambda2 = fabs(Vcv_);
-			double lambda3 = fabs(Vcv_ + c_);
-
-
-			//熵修正 Harten's entropy correction
-			double delta = 0.05 * c;
-			if (fabs(lambda1) <= delta)
-				lambda1 = (lambda1 * lambda1 + delta * delta) / (2 * delta);
-			if (fabs(lambda2) <= delta)
-				lambda2 = (lambda2 * lambda2 + delta * delta) / (2 * delta);
-			if (fabs(lambda3) <= delta)
-				lambda3 = (lambda3 * lambda3 + delta * delta) / (2 * delta);
-
-
-			//求出Roe矩阵相关值
-			//lambda123分别是是Vcv-c, Vcv, Vcv+c
-			
-			double delF1[4], delF234[4], delF5[4];
-			const double coeff1 = lambda1 * (delP - rho_ * c_ * delVcv) / (2 * c_ * c_); //定义系数以减少计算量
-			delF1[0] = coeff1 * 1;
-			delF1[1] = coeff1 * (u_ - c_ * nx);
-			delF1[2] = coeff1 * (v_ - c_ * ny);
-			delF1[3] = coeff1 * (H_ - c_ * Vcv_);
-
-			const double coeff2 = lambda2 * (delRho - delP / (c_ * c_));
-			const double coeff3 = lambda2 * rho_;
-			delF234[0] = coeff2;
-			delF234[1] = coeff2 * u_ + coeff3 * (delu - delVcv * nx);
-			delF234[2] = coeff2 * v_ + coeff3 * (delv - delVcv * ny);
-			delF234[3] = coeff2 * q_2 / 2.0 + coeff3 * (u_ * delu + v_ * delv - Vcv_ * delVcv);
-
-			const double coeff5 = lambda3 * (delP + rho_ * c_ * delVcv) / (2 * c_ * c_);
-			delF5[0] = coeff5 * 1;
-			delF5[1] = coeff5 * (u_ + c_ * nx);
-			delF5[2] = coeff5 * (v_ + c_ * ny);
-			delF5[3] = coeff5 * (H_ + c_ * Vcv_);
+			calARoe();
 
 			for (unsigned k = 0; k <= 3; k++)
-				AARoe[k] = (delF1[k] + delF234[k] + delF5[k]);
-			
-			for (unsigned k = 0; k <= 3; k++)
-				AQi_1[i][j][k] = SI*AARoe[k];
-
-			//分裂Fc
-			double FL[4],FR[4];
-			FR[0] = rhoR*VcvR;
-    		FR[1] = rhoR*VcvR*uR + nx*pR;
-    		FR[2] = rhoR*VcvR*vR + ny*pR;
-    		FR[3] = rhoR*VcvR*HR;
-
-    		FL[0] = rhoL*VcvL;
-    		FL[1] = rhoL*VcvL*uL + nx*pL;
-    		FL[2] = rhoL*VcvL*vL + ny*pL;
-    		FL[3] = rhoL*VcvL*HL;
-
+				AQi[i][j][k] = SI*AARoe[k];
 
 			for (unsigned k = 0; k <= 3; k++)
 			{
-				Fil_1[i][j][k] = SI * FL[k];
-				Fir_1[i][j][k] = SI * FR[k];
+				Fil[i][j][k] = SI * FL[k];
+				Fir[i][j][k] = SI * FR[k];
 			}
+		}
+	} 
 	
-		}
-	} ///////////////////////
+	///////////////////////
 
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 261; i++)
-		{
-			pho_2_ba = sqrt(pho2_1[i - 1][j] * pho2_1[i][j]); //Roe平均定义
-			vx2_2_ba = (vx2_1[i - 1][j] * sqrt(pho2_1[i - 1][j]) + vx2_1[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i - 1][j]) + sqrt(pho2_1[i][j]));
-			vy2_2_ba = (vy2_1[i - 1][j] * sqrt(pho2_1[i - 1][j]) + vy2_1[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i - 1][j]) + sqrt(pho2_1[i][j]));
-			H_2_ba = (H_2[i - 1][j] * sqrt(pho2_1[i - 1][j]) + H_2[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i - 1][j]) + sqrt(pho2_1[i][j]));
-			U_2_ba = (Uil_2[i][j] * sqrt(pho2_1[i - 1][j]) + Uir_2[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i - 1][j]) + sqrt(pho2_1[i][j]));
-			shengsu_2 = sqrt((gama - 1) * (H_2_ba - (vx2_2_ba * vx2_2_ba + vy2_2_ba * vy2_2_ba) / 2));
-			lanmeta1_2 = U_2_ba;
-			lanmeta2_2 = U_2_ba - shengsu_2;
-			lanmeta3_2 = U_2_ba + shengsu_2;
-
-			if (fabs(lanmeta1_2) >= 0.1) //熵修正
-			{
-				lanmeta1_2 = fabs(lanmeta1_2);
-			}
-			else
-			{
-				lanmeta1_2 = (lanmeta1_2 * lanmeta1_2 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta2_2) >= 0.1)
-			{
-				lanmeta2_2 = fabs(lanmeta2_2);
-			}
-			else
-			{
-				lanmeta2_2 = (lanmeta2_2 * lanmeta2_2 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta3_2) >= 0.1)
-			{
-				lanmeta3_2 = fabs(lanmeta3_2);
-			}
-			else
-			{
-				lanmeta3_2 = (lanmeta3_2 * lanmeta3_2 + 0.01) / 0.2;
-			}
-
-			beta1_2 = slj_2[i][j] * lanmeta1_2 * (pho2_1[i][j] - pho2_1[i - 1][j] - (pre2_1[i][j] - pre2_1[i - 1][j]) / shengsu_2 / shengsu_2);
-			beta2_2 = slj_2[i][j] * lanmeta3_2 * (pre2_1[i][j] - pre2_1[i - 1][j] + pho_2_ba * shengsu_2 * (Uir_2[i][j] - Uil_2[i][j])) / (2 * shengsu_2 * shengsu_2);
-			beta3_2 = slj_2[i][j] * lanmeta2_2 * (pre2_1[i][j] - pre2_1[i - 1][j] - pho_2_ba * shengsu_2 * (Uir_2[i][j] - Uil_2[i][j])) / (2 * shengsu_2 * shengsu_2);
-			beta4_2 = beta1_2 + beta2_2 + beta3_2;
-			beta5_2 = shengsu_2 * (beta2_2 - beta3_2);
-			beta6_2 = slj_2[i][j] * lanmeta1_2 * pho_2_ba * (vx2_1[i][j] - vx2_1[i - 1][j] - dyj_2[i][j] / slj_2[i][j] * (Uir_2[i][j] - Uil_2[i][j]));
-			beta7_2 = slj_2[i][j] * lanmeta1_2 * pho_2_ba * (vy2_1[i][j] - vy2_1[i - 1][j] - dxj_2[i][j] / slj_2[i][j] * (Uir_2[i][j] - Uil_2[i][j]));
-
-			AQi_2[i][j][0] = beta4_2;
-			AQi_2[i][j][1] = vx2_2_ba * beta4_2 + dyj_2[i][j] / slj_2[i][j] * beta5_2 + beta6_2;
-			AQi_2[i][j][2] = vy2_2_ba * beta4_2 + dxj_2[i][j] / slj_2[i][j] * beta5_2 + beta7_2;
-			AQi_2[i][j][3] = H_2_ba * beta4_2 + U_2_ba * beta5_2 + vx2_2_ba * beta6_2 + vy2_2_ba * beta7_2 - shengsu_2 * shengsu_2 * beta1_2 / (gama - 1);
-		}
-	}
 
 	for (j = 1; j < 71; j++)
 	{
-		for (i = 1; i < 330; i++)
-		{
-			pho_1_ba = sqrt(pho1_1[i][j - 1] * pho1_1[i][j]);
-			vx1_1_ba = (vx1_1[i][j - 1] * sqrt(pho1_1[i][j - 1]) + vx1_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i][j - 1]) + sqrt(pho1_1[i][j]));
-			vy1_1_ba = (vy1_1[i][j - 1] * sqrt(pho1_1[i][j - 1]) + vy1_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i][j - 1]) + sqrt(pho1_1[i][j]));
-			H_1_ba = (H_1[i][j - 1] * sqrt(pho1_1[i][j - 1]) + H_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i][j - 1]) + sqrt(pho1_1[i][j]));
-			U_1_ba = (Ujl_1[i][j] * sqrt(pho1_1[i][j - 1]) + Ujr_1[i][j] * sqrt(pho1_1[i][j])) / (sqrt(pho1_1[i][j - 1]) + sqrt(pho1_1[i][j]));
-			shengsu_1 = sqrt((gama - 1) * (H_1_ba - (vx1_1_ba * vx1_1_ba + vy1_1_ba * vy1_1_ba) / 2));
-			lanmeta1_1 = U_1_ba;
-			lanmeta2_1 = U_1_ba - shengsu_1;
-			lanmeta3_1 = U_1_ba + shengsu_1;
-			if (fabs(lanmeta1_1) >= 0.1)
+		for (i = 1; i < 331; i++)
+		{   
+			nx=dyi[i][j] / sli[i][j];
+			ny=dxi[i][j] / sli[i][j];
+
+			SJ=sli[i][j];
+			
+			pL   = pre1[i][j-1],   pR = pre1[i][j];
+			rhoL = pho1[i][j-1], rhoR = pho1[i][j];
+			uL   =  vx1[i][j-1],   uR =  vx1[i][j];
+			vL   =  vy1[i][j-1],   vR =  vy1[i][j];
+			HL   =    H[i][j-1],   HR =    H[i][j];
+ 
+			calARoe();
+
+			for (unsigned k = 0; k <= 3; k++)
+				AQj[i][j][k] = SJ*AARoe[k];
+
+			for (unsigned k = 0; k <= 3; k++)
 			{
-				lanmeta1_1 = fabs(lanmeta1_1);
-			}
-			else
-			{
-				lanmeta1_1 = (lanmeta1_1 * lanmeta1_1 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta2_1) >= 0.1)
-			{
-				lanmeta2_1 = fabs(lanmeta2_1);
-			}
-			else
-			{
-				lanmeta2_1 = (lanmeta2_1 * lanmeta2_1 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta3_1) >= 0.1)
-			{
-				lanmeta3_1 = fabs(lanmeta3_1);
-			}
-			else
-			{
-				lanmeta3_1 = (lanmeta3_1 * lanmeta3_1 + 0.01) / 0.2;
+				Fjl[i][j][k] = SJ * FL[k];
+				Fjr[i][j][k] = SJ * FR[k];
 			}
 
-			beta1_1 = sli_1[i][j] * lanmeta1_1 * (pho1_1[i][j] - pho1_1[i][j - 1] - (pre1_1[i][j] - pre1_1[i][j - 1]) / shengsu_1 / shengsu_1);
-			beta2_1 = sli_1[i][j] * lanmeta3_1 * (pre1_1[i][j] - pre1_1[i][j - 1] + pho_1_ba * shengsu_1 * (Ujr_1[i][j] - Ujl_1[i][j])) / (2 * shengsu_1 * shengsu_1);
-			beta3_1 = sli_1[i][j] * lanmeta2_1 * (pre1_1[i][j] - pre1_1[i][j - 1] - pho_1_ba * shengsu_1 * (Ujr_1[i][j] - Ujl_1[i][j])) / (2 * shengsu_1 * shengsu_1);
-			beta4_1 = beta1_1 + beta2_1 + beta3_1;
-			beta5_1 = shengsu_1 * (beta2_1 - beta3_1);
-			beta6_1 = sli_1[i][j] * lanmeta1_1 * pho_1_ba * (vx1_1[i][j] - vx1_1[i][j - 1] - dyi_1[i][j] / sli_1[i][j] * (Ujr_1[i][j] - Ujl_1[i][j]));
-			beta7_1 = sli_1[i][j] * lanmeta1_1 * pho_1_ba * (vy1_1[i][j] - vy1_1[i][j - 1] - dxi_1[i][j] / sli_1[i][j] * (Ujr_1[i][j] - Ujl_1[i][j]));
-
-			//	fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",beta1_1,beta2_1,beta3_1,beta4_1,beta5_1,beta6_1,beta7_1);
-			AQj_1[i][j][0] = beta4_1;
-			AQj_1[i][j][1] = vx1_1_ba * beta4_1 + dyi_1[i][j] / sli_1[i][j] * beta5_1 + beta6_1;
-			AQj_1[i][j][2] = vy1_1_ba * beta4_1 + dxi_1[i][j] / sli_1[i][j] * beta5_1 + beta7_1;
-			AQj_1[i][j][3] = H_1_ba * beta4_1 + U_1_ba * beta5_1 + vx1_1_ba * beta6_1 + vy1_1_ba * beta7_1 - shengsu_1 * shengsu_1 * beta1_1 / (gama - 1);
-		}
-	} ////////////////////
-
-	for (j = 1; j < 81; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			pho_2_ba = sqrt(pho2_1[i][j - 1] * pho2_1[i][j]);
-			vx2_2_ba = (vx2_1[i][j - 1] * sqrt(pho2_1[i][j - 1]) + vx2_1[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i][j - 1]) + sqrt(pho2_1[i][j]));
-			vy2_2_ba = (vy2_1[i][j - 1] * sqrt(pho2_1[i][j - 1]) + vy2_1[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i][j - 1]) + sqrt(pho2_1[i][j]));
-			H_2_ba = (H_2[i][j - 1] * sqrt(pho2_1[i][j - 1]) + H_2[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i][j - 1]) + sqrt(pho2_1[i][j]));
-			U_2_ba = (Ujl_2[i][j] * sqrt(pho2_1[i][j - 1]) + Ujr_2[i][j] * sqrt(pho2_1[i][j])) / (sqrt(pho2_1[i][j - 1]) + sqrt(pho2_1[i][j]));
-			shengsu_2 = sqrt((gama - 1) * (H_2_ba - (vx2_2_ba * vx2_2_ba + vy2_2_ba * vy2_2_ba) / 2));
-			lanmeta1_2 = U_2_ba;
-			lanmeta2_2 = U_2_ba - shengsu_2;
-			lanmeta3_2 = U_2_ba + shengsu_2;
-			if (fabs(lanmeta1_2) >= 0.1)
-			{
-				lanmeta1_2 = fabs(lanmeta1_2);
-			}
-			else
-			{
-				lanmeta1_2 = (lanmeta1_2 * lanmeta1_2 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta2_2) >= 0.1)
-			{
-				lanmeta2_2 = fabs(lanmeta2_2);
-			}
-			else
-			{
-				lanmeta2_2 = (lanmeta2_2 * lanmeta2_2 + 0.01) / 0.2;
-			}
-			if (fabs(lanmeta3_2) >= 0.1)
-			{
-				lanmeta3_2 = fabs(lanmeta3_2);
-			}
-			else
-			{
-				lanmeta3_2 = (lanmeta3_2 * lanmeta3_2 + 0.01) / 0.2;
-			}
-
-			beta1_2 = sli_2[i][j] * lanmeta1_2 * (pho2_1[i][j] - pho2_1[i][j - 1] - (pre2_1[i][j] - pre2_1[i][j - 1]) / shengsu_2 / shengsu_2);
-			beta2_2 = sli_2[i][j] * lanmeta3_2 * (pre2_1[i][j] - pre2_1[i][j - 1] + pho_2_ba * shengsu_2 * (Ujr_2[i][j] - Ujl_2[i][j])) / (2 * shengsu_2 * shengsu_2);
-			beta3_2 = sli_2[i][j] * lanmeta2_2 * (pre2_1[i][j] - pre2_1[i][j - 1] - pho_2_ba * shengsu_2 * (Ujr_2[i][j] - Ujl_2[i][j])) / (2 * shengsu_2 * shengsu_2);
-			beta4_2 = beta1_2 + beta2_2 + beta3_2;
-			beta5_2 = shengsu_2 * (beta2_2 - beta3_2);
-			beta6_2 = sli_2[i][j] * lanmeta1_2 * pho_2_ba * (vx2_1[i][j] - vx2_1[i][j - 1] - dyi_2[i][j] / sli_2[i][j] * (Ujr_2[i][j] - Ujl_2[i][j]));
-			beta7_2 = sli_1[i][j] * lanmeta1_2 * pho_2_ba * (vy2_1[i][j] - vy2_1[i][j - 1] - dxi_2[i][j] / sli_2[i][j] * (Ujr_2[i][j] - Ujl_2[i][j]));
-
-			//	fprintf(fp,"%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n",beta1_1,beta2_1,beta3_1,beta4_1,beta5_1,beta6_1,beta7_1);
-			AQj_2[i][j][0] = beta4_2;
-			AQj_2[i][j][1] = vx2_2_ba * beta4_2 + dyi_2[i][j] / sli_2[i][j] * beta5_2 + beta6_2;
-			AQj_2[i][j][2] = vy2_2_ba * beta4_2 + dxi_2[i][j] / sli_2[i][j] * beta5_2 + beta7_2;
-			AQj_2[i][j][3] = H_2_ba * beta4_2 + U_2_ba * beta5_2 + vx2_2_ba * beta6_2 + vy2_2_ba * beta7_2 - shengsu_2 * shengsu_2 * beta1_2 / (gama - 1);
 		}
 	}
-
 	maxflux = 0;
 	maxi = 0;
 	maxj = 0;
@@ -870,76 +372,42 @@ void roe() //利用roe格式求解
 	maxj2 = 0;
 	max2 = 0;
 
-	double FcI[4], FcJ[4], FcI_1[4],FcJ_1[4];
+	double FcI[4], FcJ[4], FcIright[4],FcJup[4];
 	
 	for (j = 1; j < 70; j++)
 	{
 		for (i = 1; i < 330; i++)
 		{
-			/*
-			Flux_1[i][j][0] = -(Fil_1[i][j][0] + Fir_1[i][j][0] - AQi_1[i][j][0]) / 2 + (Fil_1[i + 1][j][0] + Fir_1[i + 1][j][0] - AQi_1[i + 1][j][0]) / 2 - (Fjl_1[i][j][0] + Fjr_1[i][j][0] - AQj_1[i][j][0]) / 2 + (Fjl_1[i][j + 1][0] + Fjr_1[i][j + 1][0] - AQj_1[i][j + 1][0]) / 2;
-			Flux_1[i][j][1] = -(Fil_1[i][j][1] + Fir_1[i][j][1] - AQi_1[i][j][1]) / 2 + (Fil_1[i + 1][j][1] + Fir_1[i + 1][j][1] - AQi_1[i + 1][j][1]) / 2 - (Fjl_1[i][j][1] + Fjr_1[i][j][1] - AQj_1[i][j][1]) / 2 + (Fjl_1[i][j + 1][1] + Fjr_1[i][j + 1][1] - AQj_1[i][j + 1][1]) / 2;
-			Flux_1[i][j][2] = -(Fil_1[i][j][2] + Fir_1[i][j][2] - AQi_1[i][j][2]) / 2 + (Fil_1[i + 1][j][2] + Fir_1[i + 1][j][2] - AQi_1[i + 1][j][2]) / 2 - (Fjl_1[i][j][2] + Fjr_1[i][j][2] - AQj_1[i][j][2]) / 2 + (Fjl_1[i][j + 1][2] + Fjr_1[i][j + 1][2] - AQj_1[i][j + 1][2]) / 2;
-			Flux_1[i][j][3] = -(Fil_1[i][j][3] + Fir_1[i][j][3] - AQi_1[i][j][3]) / 2 + (Fil_1[i + 1][j][3] + Fir_1[i + 1][j][3] - AQi_1[i + 1][j][3]) / 2 - (Fjl_1[i][j][3] + Fjr_1[i][j][3] - AQj_1[i][j][3]) / 2 + (Fjl_1[i][j + 1][3] + Fjr_1[i][j + 1][3] - AQj_1[i][j + 1][3]) / 2;
-			*/
-			//int I=i, J=j;
 			for (unsigned k = 0; k < 4; k++)
             {
                 //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
                 //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
-				FcI[k]  =(Fil_1[i][j][k] + Fir_1[i][j][k] - AQi_1[i][j][k]) / 2;
-				FcI_1[k]=(Fil_1[i + 1][j][k] + Fir_1[i + 1][j][k] - AQi_1[i + 1][j][k]) / 2;
-				FcJ[k]  =(Fjl_1[i][j][k] + Fjr_1[i][j][k] - AQj_1[i][j][k]) / 2;
-				FcJ_1[k]=(Fjl_1[i][j + 1][k] + Fjr_1[i][j + 1][k] - AQj_1[i][j + 1][k]) / 2;
+				FcI[k]  =(Fil[i][j][k] + Fir[i][j][k] - AQi[i][j][k]) / 2;
+				FcIright[k]=(Fil[i + 1][j][k] + Fir[i + 1][j][k] - AQi[i + 1][j][k]) / 2;
+				FcJ[k]  =(Fjl[i][j][k] + Fjr[i][j][k] - AQj[i][j][k]) / 2;
+				FcJup[k]=(Fjl[i][j + 1][k] + Fjr[i][j + 1][k] - AQj[i][j + 1][k]) / 2;
 
-                Flux_1[i][j][k] = -FcI[k]  + FcI_1[k]  - FcJ[k]  + FcJ_1[k] ;
+                Flux[i][j][k] = -FcI[k]  + FcIright[k]  - FcJ[k]  + FcJup[k] ;
             }
 
-			if (Flux_1[i][j][0] > maxflux)
+			if (Flux[i][j][0] > maxflux)
 			{
-				maxflux = Flux_1[i][j][0];
+				maxflux = Flux[i][j][0];
 			}
-			if (Flux_1[i][j][1] > maxflux2)
+			if (Flux[i][j][1] > maxflux2)
 			{
-				maxflux2 = Flux_1[i][j][1];
+				maxflux2 = Flux[i][j][1];
 			}
-			if (Flux_1[i][j][2] > maxflux3)
+			if (Flux[i][j][2] > maxflux3)
 			{
-				maxflux3 = Flux_1[i][j][2];
+				maxflux3 = Flux[i][j][2];
 			}
-			if (Flux_1[i][j][3] > maxflux4)
+			if (Flux[i][j][3] > maxflux4)
 			{
-				maxflux4 = Flux_1[i][j][3];
+				maxflux4 = Flux[i][j][3];
 			}
 		}
 	} //////////
-
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			Flux_2[i][j][0] = -(Fil_2[i][j][0] + Fir_2[i][j][0] - AQi_2[i][j][0]) / 2 + (Fil_2[i + 1][j][0] + Fir_2[i + 1][j][0] - AQi_2[i + 1][j][0]) / 2 - (Fjl_2[i][j][0] + Fjr_2[i][j][0] - AQj_2[i][j][0]) / 2 + (Fjl_2[i][j + 1][0] + Fjr_2[i][j + 1][0] - AQj_2[i][j + 1][0]) / 2;
-			Flux_2[i][j][1] = -(Fil_2[i][j][1] + Fir_2[i][j][1] - AQi_2[i][j][1]) / 2 + (Fil_2[i + 1][j][1] + Fir_2[i + 1][j][1] - AQi_2[i + 1][j][1]) / 2 - (Fjl_2[i][j][1] + Fjr_2[i][j][1] - AQj_2[i][j][1]) / 2 + (Fjl_2[i][j + 1][1] + Fjr_2[i][j + 1][1] - AQj_2[i][j + 1][1]) / 2;
-			Flux_2[i][j][2] = -(Fil_2[i][j][2] + Fir_2[i][j][2] - AQi_2[i][j][2]) / 2 + (Fil_2[i + 1][j][2] + Fir_2[i + 1][j][2] - AQi_2[i + 1][j][2]) / 2 - (Fjl_2[i][j][2] + Fjr_2[i][j][2] - AQj_2[i][j][2]) / 2 + (Fjl_2[i][j + 1][2] + Fjr_2[i][j + 1][2] - AQj_2[i][j + 1][2]) / 2;
-			Flux_2[i][j][3] = -(Fil_2[i][j][3] + Fir_2[i][j][3] - AQi_2[i][j][3]) / 2 + (Fil_2[i + 1][j][3] + Fir_2[i + 1][j][3] - AQi_2[i + 1][j][3]) / 2 - (Fjl_2[i][j][3] + Fjr_2[i][j][3] - AQj_2[i][j][3]) / 2 + (Fjl_2[i][j + 1][3] + Fjr_2[i][j + 1][3] - AQj_2[i][j + 1][3]) / 2;
-			if (Flux_2[i][j][0] > maxflux)
-			{
-				maxflux = Flux_2[i][j][0];
-			}
-			if (Flux_2[i][j][1] > maxflux2)
-			{
-				maxflux2 = Flux_2[i][j][1];
-			}
-			if (Flux_2[i][j][2] > maxflux3)
-			{
-				maxflux3 = Flux_2[i][j][2];
-			}
-			if (Flux_2[i][j][3] > maxflux4)
-			{
-				maxflux4 = Flux_2[i][j][3];
-			}
-		}
-	}
 }
 
 void iteration()
@@ -949,24 +417,12 @@ dtGlobal=100;
 	{
 		for (i = 1; i < 330; i++)
 		{
-			Q_1[i][j][0] = pho1_1[i][j];
-			Q_1[i][j][1] = pho1_1[i][j] * vx1_1[i][j];
-			Q_1[i][j][2] = pho1_1[i][j] * vy1_1[i][j];
-			Q_1[i][j][3] = pre1_1[i][j] / (gama - 1) + 0.5 * pho1_1[i][j] * (vx1_1[i][j] * vx1_1[i][j] + vy1_1[i][j] * vy1_1[i][j]);
+			Q[i][j][0] = pho1[i][j];
+			Q[i][j][1] = pho1[i][j] * vx1[i][j];
+			Q[i][j][2] = pho1[i][j] * vy1[i][j];
+			Q[i][j][3] = pre1[i][j] / (gama - 1) + 0.5 * pho1[i][j] * (vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]);
 		}
 	}
-
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			Q_2[i][j][0] = pho2_1[i][j];
-			Q_2[i][j][1] = pho2_1[i][j] * vx2_1[i][j];
-			Q_2[i][j][2] = pho2_1[i][j] * vy2_1[i][j];
-			Q_2[i][j][3] = pre2_1[i][j] / (gama - 1) + 0.5 * pho2_1[i][j] * (vx2_1[i][j] * vx2_1[i][j] + vy2_1[i][j] * vy2_1[i][j]);
-		}
-	}
-
 	resm1 = 0;
 	for (i = 0; i < 4; i++)
 	{
@@ -981,62 +437,34 @@ dtGlobal=100;
 	{
 		for (i = 1; i < 330; i++)
 		{
-			tyj = 0.5 * (dyj_1[i][j] + dyj_1[i + 1][j]);
-			txj = 0.5 * (dxj_1[i][j] + dxj_1[i + 1][j]);
-			tslj = 0.5 * (slj_1[i][j] + slj_1[i + 1][j]);
-			tyi = 0.5 * (dyi_1[i][j] + dyi_1[i][j + 1]);
-			txi = 0.5 * (dxi_1[i][j] + dxi_1[i][j + 1]);
-			tsli = 0.5 * (sli_1[i][j] + sli_1[i][j + 1]);
-			vj = tyj * vx1_1[i][j] + txj * vy1_1[i][j];
-			vi = tyi * vx1_1[i][j] + txi * vy1_1[i][j];
-			sonic = sqrt(gama * pre1_1[i][j] / pho1_1[i][j]);
+			tyj = 0.5 * (dyj[i][j] + dyj[i + 1][j]);
+			txj = 0.5 * (dxj[i][j] + dxj[i + 1][j]);
+			tslj = 0.5 * (slj[i][j] + slj[i + 1][j]);
+			tyi = 0.5 * (dyi[i][j] + dyi[i][j + 1]);
+			txi = 0.5 * (dxi[i][j] + dxi[i][j + 1]);
+			tsli = 0.5 * (sli[i][j] + sli[i][j + 1]);
+			vj = tyj * vx1[i][j] + txj * vy1[i][j];
+			vi = tyi * vx1[i][j] + txi * vy1[i][j];
+			sonic = sqrt(gama * pre1[i][j] / pho1[i][j]);
 			chvel = fabs(vj) + fabs(vi) + sonic * (tslj + tsli);
 			dt = cfl / chvel;
 			if(dtGlobal>dt) dtGlobal=dt;
-			
-			Q_1[i][j][0] = Q_1[i][j][0] - dt * Flux_1[i][j][0]; //迭代求解下一步Q
-			Q_1[i][j][1] = Q_1[i][j][1] - dt * Flux_1[i][j][1];
-			Q_1[i][j][2] = Q_1[i][j][2] - dt * Flux_1[i][j][2];
-			Q_1[i][j][3] = Q_1[i][j][3] - dt * Flux_1[i][j][3];
 
-    		pho1_1[i][j] = Q_1[i][j][0];
-    		vx1_1[i][j] = Q_1[i][j][1] / pho1_1[i][j];
-    		vy1_1[i][j] = Q_1[i][j][2] / pho1_1[i][j];
-    		pre1_1[i][j] = (GAMMA - 1) * (Q_1[i][j][3] - 0.5*pho1_1[i][j] * ( SQ(vx1_1[i][j]) + SQ(vy1_1[i][j]) ) );
-    		H_1[i][j] = (Q_1[i][j][3] + pho1_1[i][j]) / pho1_1[i][j];  
+			Q[i][j][0] = Q[i][j][0] - dt * Flux[i][j][0]; //迭代求解下一步Q
+			Q[i][j][1] = Q[i][j][1] - dt * Flux[i][j][1];
+			Q[i][j][2] = Q[i][j][2] - dt * Flux[i][j][2];
+			Q[i][j][3] = Q[i][j][3] - dt * Flux[i][j][3];
+
+    		pho1[i][j] = Q[i][j][0];
+    		vx1[i][j] = Q[i][j][1] / pho1[i][j];
+    		vy1[i][j] = Q[i][j][2] / pho1[i][j];
+    		pre1[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*pho1[i][j] * ( SQ(vx1[i][j]) + SQ(vy1[i][j]) ) );
+    		H[i][j] = (Q[i][j][3] + pho1[i][j]) / pho1[i][j];  
 
 		}
 	} /////////////////
-
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			tyj = 0.5 * (dyj_2[i][j] + dyj_2[i + 1][j]);
-			txj = 0.5 * (dxj_2[i][j] + dxj_2[i + 1][j]);
-			tslj = 0.5 * (slj_2[i][j] + slj_2[i + 1][j]);
-			tyi = 0.5 * (dyi_2[i][j] + dyi_2[i][j + 1]);
-			txi = 0.5 * (dxi_2[i][j] + dxi_2[i][j + 1]);
-			tsli = 0.5 * (sli_2[i][j] + sli_2[i][j + 1]);
-			vj = tyj * vx2_1[i][j] + txj * vy2_1[i][j];
-			vi = tyi * vx2_1[i][j] + txi * vy2_1[i][j];
-			sonic = sqrt(gama * pre2_1[i][j] / pho2_1[i][j]);
-			chvel = fabs(vj) + fabs(vi) + sonic * (tslj + tsli);
-			dt = cfl / chvel;
-			//	fprintf(fp,"%.5f\n",dt);
-			Q_2[i][j][0] = Q_2[i][j][0] - dt * Flux_2[i][j][0]; //迭代求解下一步Q
-			Q_2[i][j][1] = Q_2[i][j][1] - dt * Flux_2[i][j][1];
-			Q_2[i][j][2] = Q_2[i][j][2] - dt * Flux_2[i][j][2];
-			Q_2[i][j][3] = Q_2[i][j][3] - dt * Flux_2[i][j][3];
-			pho2_1[i][j] = Q_2[i][j][0];
-			vx2_1[i][j] = Q_2[i][j][1] / Q_2[i][j][0];
-			vy2_1[i][j] = Q_2[i][j][2] / Q_2[i][j][0];
-			pre2_1[i][j] = (gama - 1) * (Q_2[i][j][3] - 0.5 * pho2_1[i][j] * (vx2_1[i][j] * vx2_1[i][j] + vy2_1[i][j] * vy2_1[i][j]));
-			T2_1[i][j] = pre2_1[i][j] / pho2_1[i][j] / R;
-			ma2_1[i][j] = sqrt(vx2_1[i][j] * vx2_1[i][j] + vy2_1[i][j] * vy2_1[i][j]) / sqrt(gama * R * T2_1[i][j]);
-		}
-	}
 }
+
 void record()
 {
 	for (j = 1; j < 70; j++)
@@ -1071,118 +499,47 @@ void record()
 	nodesc1[0][70][1] = nodes[1][70][1];
 	for (j = 1; j < 70; j++)
 	{
-		pho1_1[0][j] = 0.5 * (pho1_1[0][j] + pho1_1[1][j]);
-		vx1_1[0][j] = 0.5 * (vx1_1[0][j] + vx1_1[1][j]);
-		vy1_1[0][j] = 0.5 * (vy1_1[0][j] + vy1_1[1][j]);
-		pre1_1[0][j] = 0.5 * (pre1_1[0][j] + pre1_1[1][j]);
-		pho1_1[330][j] = 0.5 * (pho1_1[330][j] + pho1_1[259][j]);
-		vx1_1[330][j] = 0.5 * (vx1_1[330][j] + vx1_1[259][j]);
-		vy1_1[330][j] = 0.5 * (vy1_1[330][j] + vy1_1[259][j]);
-		pre1_1[330][j] = 0.5 * (pre1_1[330][j] + pre1_1[259][j]);
+		pho1[0][j] = 0.5 * (pho1[0][j] + pho1[1][j]);
+		vx1[0][j] = 0.5 * (vx1[0][j] + vx1[1][j]);
+		vy1[0][j] = 0.5 * (vy1[0][j] + vy1[1][j]);
+		pre1[0][j] = 0.5 * (pre1[0][j] + pre1[1][j]);
+		pho1[330][j] = 0.5 * (pho1[330][j] + pho1[259][j]);
+		vx1[330][j] = 0.5 * (vx1[330][j] + vx1[259][j]);
+		vy1[330][j] = 0.5 * (vy1[330][j] + vy1[259][j]);
+		pre1[330][j] = 0.5 * (pre1[330][j] + pre1[259][j]);
 	}
 	for (i = 1; i < 330; i++)
 	{
-		pho1_1[i][0] = 0.5 * (pho1_1[i][0] + pho1_1[i][1]);
-		vx1_1[i][0] = 0.5 * (vx1_1[i][0] + vx1_1[i][1]);
-		vy1_1[i][0] = 0.5 * (vy1_1[i][0] + vy1_1[i][1]);
-		pre1_1[i][0] = 0.5 * (pre1_1[i][0] + pre1_1[i][1]);
-		pho1_1[i][70] = 0.5 * (pho1_1[i][70] + pho1_1[i][69]);
-		vx1_1[i][70] = 0.5 * (vx1_1[i][70] + vx1_1[i][69]);
-		vy1_1[i][70] = 0.5 * (vy1_1[i][70] + vy1_1[i][69]);
-		pre1_1[i][70] = 0.5 * (pre1_1[i][70] + pre1_1[i][69]);
+		pho1[i][0] = 0.5 * (pho1[i][0] + pho1[i][1]);
+		vx1[i][0] = 0.5 * (vx1[i][0] + vx1[i][1]);
+		vy1[i][0] = 0.5 * (vy1[i][0] + vy1[i][1]);
+		pre1[i][0] = 0.5 * (pre1[i][0] + pre1[i][1]);
+		pho1[i][70] = 0.5 * (pho1[i][70] + pho1[i][69]);
+		vx1[i][70] = 0.5 * (vx1[i][70] + vx1[i][69]);
+		vy1[i][70] = 0.5 * (vy1[i][70] + vy1[i][69]);
+		pre1[i][70] = 0.5 * (pre1[i][70] + pre1[i][69]);
 	}
-	pho1_1[0][0] = pho1_1[1][0];
-	vx1_1[0][0] = vx1_1[1][0];
-	vy1_1[0][0] = vy1_1[1][0];
-	pre1_1[0][0] = pre1_1[1][0];
+	pho1[0][0] = pho1[1][0];
+	vx1[0][0] = vx1[1][0];
+	vy1[0][0] = vy1[1][0];
+	pre1[0][0] = pre1[1][0];
 
-	pho1_1[0][70] = pho1_1[1][70];
-	vx1_1[0][70] = vx1_1[1][70];
-	vy1_1[0][70] = vy1_1[1][70];
-	pre1_1[0][70] = pre1_1[1][70];
+	pho1[0][70] = pho1[1][70];
+	vx1[0][70] = vx1[1][70];
+	vy1[0][70] = vy1[1][70];
+	pre1[0][70] = pre1[1][70];
 
-	pho1_1[330][0] = pho1_1[259][0];
-	vx1_1[330][0] = vx1_1[259][0];
-	vy1_1[330][0] = vy1_1[259][0];
-	pre1_1[330][0] = pre1_1[259][0];
+	pho1[330][0] = pho1[259][0];
+	vx1[330][0] = vx1[259][0];
+	vy1[330][0] = vy1[259][0];
+	pre1[330][0] = pre1[259][0];
 
-	pho1_1[330][70] = pho1_1[259][70];
-	vx1_1[330][70] = vx1_1[259][70];
-	vy1_1[330][70] = vy1_1[259][70];
-	pre1_1[330][70] = pre1_1[259][70];
+	pho1[330][70] = pho1[259][70];
+	vx1[330][70] = vx1[259][70];
+	vy1[330][70] = vy1[259][70];
+	pre1[330][70] = pre1[259][70];
 	////////////////////////////////////////
 
-	for (j = 1; j < 80; j++)
-	{
-		for (i = 1; i < 260; i++)
-		{
-			nodesc2[i][j][0] = 0.25 * (nodes2[i][j][0] + nodes2[i + 1][j][0] + nodes2[i + 1][j + 1][0] + nodes2[i][j + 1][0]);
-			nodesc2[i][j][1] = 0.25 * (nodes2[i][j][1] + nodes2[i + 1][j][1] + nodes2[i + 1][j + 1][1] + nodes2[i][j + 1][1]);
-		}
-	}
-	for (j = 1; j < 80; j++)
-	{
-		nodesc2[0][j][0] = 0.5 * (nodes2[1][j][0] + nodes2[1][j + 1][0]);
-		nodesc2[0][j][1] = 0.5 * (nodes2[1][j][1] + nodes2[1][j + 1][1]);
-		nodesc2[260][j][0] = 0.5 * (nodes2[260][j][0] + nodes2[260][j + 1][0]);
-		nodesc2[260][j][1] = 0.5 * (nodes2[260][j][1] + nodes2[260][j + 1][1]);
-	}
-	for (i = 1; i < 260; i++)
-	{
-		nodesc2[i][0][0] = 0.5 * (nodes2[i][0][0] + nodes2[i + 1][0][0]);
-		nodesc2[i][0][1] = 0.5 * (nodes2[i][0][1] + nodes2[i + 1][0][1]); /////////////
-		nodesc2[i][80][0] = 0.5 * (nodes2[i][80][0] + nodes2[i + 1][80][0]);
-		nodesc2[i][80][1] = 0.5 * (nodes2[i][80][1] + nodes2[i + 1][80][1]);
-	}
-	nodesc2[0][0][0] = nodes2[1][1][0];
-	nodesc2[0][0][1] = nodes2[1][0][1];
-	nodesc2[260][0][0] = nodes2[260][1][0];
-	nodesc2[260][0][1] = nodes2[260][0][1];
-	nodesc2[260][80][0] = nodes2[260][80][0];
-	nodesc2[260][80][1] = nodes2[260][80][1];
-	nodesc2[0][80][0] = nodes2[1][80][0];
-	nodesc2[0][80][1] = nodes2[1][80][1];
-	for (j = 1; j < 80; j++)
-	{
-		pho2_1[0][j] = 0.5 * (pho2_1[0][j] + pho2_1[1][j]);
-		vx2_1[0][j] = 0.5 * (vx2_1[0][j] + vx2_1[1][j]);
-		vy2_1[0][j] = 0.5 * (vy2_1[0][j] + vy2_1[1][j]);
-		pre2_1[0][j] = 0.5 * (pre2_1[0][j] + pre2_1[1][j]);
-		pho2_1[260][j] = 0.5 * (pho2_1[260][j] + pho2_1[259][j]);
-		vx2_1[260][j] = 0.5 * (vx2_1[260][j] + vx2_1[259][j]);
-		vy2_1[260][j] = 0.5 * (vy2_1[260][j] + vy2_1[259][j]);
-		pre2_1[260][j] = 0.5 * (pre2_1[260][j] + pre2_1[259][j]);
-	}
-	for (i = 1; i < 260; i++)
-	{
-		pho2_1[i][0] = 0.5 * (pho2_1[i][0] + pho2_1[i][1]);
-		vx2_1[i][0] = 0.5 * (vx2_1[i][0] + vx2_1[i][1]);
-		vy2_1[i][0] = 0.5 * (vy2_1[i][0] + vy2_1[i][1]);
-		pre2_1[i][0] = 0.5 * (pre2_1[i][0] + pre2_1[i][1]);
-		pho2_1[i][80] = 0.5 * (pho2_1[i][80] + pho2_1[i][79]);
-		vx2_1[i][80] = 0.5 * (vx2_1[i][80] + vx2_1[i][79]);
-		vy2_1[i][80] = 0.5 * (vy2_1[i][80] + vy2_1[i][79]);
-		pre2_1[i][80] = 0.5 * (pre2_1[i][80] + pre2_1[i][79]);
-	}
-	pho2_1[0][0] = pho2_1[1][0];
-	vx2_1[0][0] = vx2_1[1][0];
-	vy2_1[0][0] = vy2_1[1][0];
-	pre2_1[0][0] = pre2_1[1][0];
-
-	pho2_1[0][80] = pho2_1[1][80];
-	vx2_1[0][80] = vx2_1[1][80];
-	vy2_1[0][80] = vy2_1[1][80];
-	pre2_1[0][80] = pre2_1[1][80];
-
-	pho2_1[260][0] = pho2_1[259][0];
-	vx2_1[260][0] = vx2_1[259][0];
-	vy2_1[260][0] = vy2_1[259][0];
-	pre2_1[260][0] = pre2_1[259][0];
-
-	pho2_1[260][80] = pho2_1[259][80];
-	vx2_1[260][80] = vx2_1[259][80];
-	vy2_1[260][80] = vy2_1[259][80];
-	pre2_1[260][80] = pre2_1[259][80];
 }
 
 int main()
@@ -1198,8 +555,8 @@ int main()
 	for (k = 0; k < 2000; k++)
 	{
 
-		printf("%d    %.15f    %.15f    %.15f    %.15f    %.15f  %.5e\n", k, maxflux, maxflux2, maxflux3, maxflux4, T2_1[3][50], dtGlobal);
-		fprintf(fg, "%d    %.15f    %.15f    %.15f    %.15f    %.15f\n", k, maxflux, maxflux2, maxflux3, maxflux4, T2_1[3][50]);
+		printf("%d    %.15f    %.15f    %.15f    %.15f      %.5e\n", k, maxflux, maxflux2, maxflux3, maxflux4,  dtGlobal);
+		fprintf(fg, "%d    %.15f    %.15f    %.15f    %.15f\n", k, maxflux, maxflux2, maxflux3, maxflux4);
 		boundary_conditions();
 		roe();
 		iteration();
@@ -1207,27 +564,18 @@ int main()
 
 	fp = fopen("1.txt", "w");
 
-	fprintf(fp, "x                 ,y              pho1_1[i][j],    vx1_1[i][j],    vy1_1[i][j],      pre1_1[i][j],      T1_1[i][j],      ma1_1[i][j]\n");
+	fprintf(fp, "x                 ,y              pho1[i][j],    vx1[i][j],    vy1[i][j],      pre1[i][j],      T1[i][j],      ma1[i][j]\n");
 
 	for (i = 1; i < 330; i++)
 	{
 		for (j = 1; j < 70; j++)
 		{
-			T1_1[i][j] = pre1_1[i][j] / R / pho1_1[i][j];
-			ma1_1[i][j] = sqrt(vx1_1[i][j] * vx1_1[i][j] + vy1_1[i][j] * vy1_1[i][j]) / sqrt(gama * R * T1_1[i][j]);
-			fprintf(fp, "%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n", nodes[i][j][0], nodes[i][j][1], pho1_1[i][j], vx1_1[i][j], vy1_1[i][j], pre1_1[i][j], T1_1[i][j], ma1_1[i][j]);
+			T1[i][j] = pre1[i][j] / R / pho1[i][j];
+			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
+			fprintf(fp, "%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n", nodes[i][j][0], nodes[i][j][1], pho1[i][j], vx1[i][j], vy1[i][j], pre1[i][j], T1[i][j], ma1[i][j]);
 		}
 	}
-	fq = fopen("2.txt", "w");
-	fprintf(fq, "x                 ,y              pho1_1[i][j],    vx1_1[i][j],    vy1_1[i][j],      pre1_1[i][j],      T1_1[i][j],      ma1_1[i][j]\n");
 
-	for (i = 1; i < 260; i++)
-	{
-		for (j = 1; j < 80; j++)
-		{
-			fprintf(fq, "%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n", nodes2[i][j][0], nodes2[i][j][1], pho2_1[i][j], vx2_1[i][j], vy2_1[i][j], pre2_1[i][j], T2_1[i][j], ma2_1[i][j]);
-		}
-	}
 
 	record();
 
@@ -1237,21 +585,11 @@ int main()
 	{
 		for (i = 0; i < 331; i++)
 		{
-			T1_1[i][j] = pre1_1[i][j] / R / pho1_1[i][j];
-			ma1_1[i][j] = sqrt(vx1_1[i][j] * vx1_1[i][j] + vy1_1[i][j] * vy1_1[i][j]) / sqrt(gama * R * T1_1[i][j]);
-			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodesc1[i][j][0], nodesc1[i][j][1], pho1_1[i][j], vx1_1[i][j], vy1_1[i][j], pre1_1[i][j], T1_1[i][j], ma1_1[i][j]);
+			T1[i][j] = pre1[i][j] / R / pho1[i][j];
+			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
+			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodesc1[i][j][0], nodesc1[i][j][1], pho1[i][j], vx1[i][j], vy1[i][j], pre1[i][j], T1[i][j], ma1[i][j]);
 		}
 	} //////////////
-	fs = fopen("WYplotflow2.dat", "w");
-	fprintf(fs, "Title=\"NOZZLE\"\nVariables=\"x\",\"y\",\"dens\",\"velx\",\"vely\",\"spre\",\"ttem\",\"mach\"\nZone T=\"NOZZLE\" i=261,j=81,f=point \n");
-	for (j = 0; j < 81; j++)
-	{
-		for (i = 0; i < 261; i++)
-		{
-			T2_1[i][j] = pre2_1[i][j] / R / pho2_1[i][j];
-			ma2_1[i][j] = sqrt(vx2_1[i][j] * vx2_1[i][j] + vy2_1[i][j] * vy2_1[i][j]) / sqrt(gama * R * T2_1[i][j]);
-			fprintf(fs, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodesc2[i][j][0], nodesc2[i][j][1], pho2_1[i][j], vx2_1[i][j], vy2_1[i][j], pre2_1[i][j], T2_1[i][j], ma2_1[i][j]);
-		}
-	}
-	printf("nodesc[2][00][1]=%f\n", nodesc1[2][0][1]);
+
+	
 }

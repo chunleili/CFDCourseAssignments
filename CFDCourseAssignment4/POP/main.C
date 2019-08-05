@@ -432,7 +432,7 @@ Vector AARoe;
 double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
 double VcvL, VcvR;
 
-void ARoe()
+void calARoe()
 {
     double delP = pR - pL;
     double delRho = rhoR - rhoL;
@@ -521,7 +521,7 @@ void splitI()
     HR  =H  [I  ][J];   HL  =H  [I-1][J];
 
     VcvR=uR*nx+vR*ny;
-    VcvL=uL*N2[I][J].x+vL*N2[I][J].y;
+    VcvL=uL*nx+vL*ny;
 }
 
 void splitJ()
@@ -533,7 +533,7 @@ void splitJ()
     HR  =H  [I][J];     HL  =H  [I][J-1];
 
     VcvR=uR*nx+vR*ny;
-    VcvL=uL*N3[I][J].x+vL*N3[I][J].y;
+    VcvL=uL*nx+vL*ny;
 }
 
 
@@ -541,13 +541,13 @@ void roeFlux()
 {   
     nx=N2[I][J].x; ny=N2[I][J].y;
     splitI();
-    ARoe();
+    calARoe();
     for(unsigned k=0; k<4; k++)
         FcI[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
     
     nx=N3[I][J].x; ny=N3[I][J].y;
     splitJ();
-    ARoe();
+    calARoe();
     for(unsigned k=0; k<4; k++)
         FcJ[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
 }
