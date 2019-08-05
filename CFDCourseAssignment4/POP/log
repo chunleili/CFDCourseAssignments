@@ -8,21 +8,7 @@ mesh is written in "mesh.dat"
 Initialzation done.
 
 p[50][1]= 101325.000000
+H[51][1]=496662.500000
 step= 1
 
-&IJCheck: (H_-q_2/2) (88,4) = -10094.5 is negative!
-
-&IJCheck: (H_-q_2/2) (89,3) = -10094.5 is negative!
-1     9.8510e+00 7.7760e+03 1.8029e+03 5.2784e+06
-p[50][1]= 101360.476716
-step= 2
-
-&IJCheck: (H_-q_2/2) (66,2) = -470030 is negative!
-
-&IJCheck: (H_-q_2/2) (67,1) = -389008 is negative!
-
-&IJCheck: (H_-q_2/2) (78,1) = -2.07161e+06 is negative!
-
-&IJCheck: rhoL (80,1) = -0.253216 is negative!
-
-&IJCheck: p[I][J]*1.0 (82,1) = -6574.7 is negative!
+delF<0! (1,2)

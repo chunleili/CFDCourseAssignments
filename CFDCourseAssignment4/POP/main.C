@@ -36,6 +36,14 @@ const double Rg=287;
 const double Cp=1004.5;//1.4/0.4*287
 const double Cv=717.5;//1004.5-287
 const double CFL=0.7;
+
+const double p0=101325;
+const double u0=624.9397;
+const double v0=0;
+const double T0=300;
+const double rho0=1.176829268;
+const double H0=496662.5;
+const double E0=483117.6;
 /***************************define the type ********************************/
 typedef struct XY
 {
@@ -47,7 +55,7 @@ typedef struct XY
 //在最左和最下侧分别铺设一层虚网格,最上和最右侧分别铺设两层虚网格
 //0代表左下虚网格, maxI/J+1和maxI/J+2代表右上虚网格, 实际网格1~max, 共max个
 typedef XY     MeshPoint[maxI+3][maxJ+3];        //用于存储网格点坐标
-typedef double Field[maxI+3][maxJ+3][4];         //场,用于定义Q,Fc1等对象
+typedef double Field[maxI+3][maxJ+3][4];         //场,用于定义Q,Fc等对象
 typedef double ScalarField[maxI+3][maxJ+3];      //标量场,用于p,rho大小等场对象
 typedef XY     VectorField[maxI+3][maxJ+3];      //向量场,用于定义面的单位法量 
 typedef double Vector[4];                        //表示某一单元格的参数
@@ -64,8 +72,10 @@ void genMesh();
 void printMesh();
 void cellGeometry(); 
 
-Field Q, FcI, FcJ;//右侧和上侧的对流通量的大小, 向外为正, 方向由N1~N4给定
+Field FcI, FcJ;//右侧和上侧的对流通量的大小, 向外为正, 方向由N1~N4给定
+Field Q;//Q用于存储守恒变量
 Field R; //R for Residual, 残差
+//double QQ[maxI+3][maxJ+3][5];//QQ用于存储原始变量rho u v p H
 
 void init1();
 void solve();
@@ -77,6 +87,10 @@ double c;
 
 void roeFlux();//roe格式求解通量,注意通量要比单元格数量多1
 double residualRho, residualU, residualV, residualE;
+
+FILE* fpDe;
+
+
 /********************************Mesh**************************************/
 //虚网格的几何参数和临近实际网格一致, 但是不需要生成网格点, 为了和单元格编号一一对应,也从1开始
 //左下点代表的编号和本单元格编号一致
@@ -212,13 +226,22 @@ double LTS()
 }
 
 /**********************init & BC********************************/
+void extrapolation(Index i, Index j, Index newI, Index newJ)
+{
+  rho[newI][newJ] =rho[i][j];
+    u[newI][newJ] =  u[i][j];
+    v[newI][newJ] =  v[i][j];
+    p[newI][newJ] =  p[i][j];
+    H[newI][newJ] =  H[i][j];
+}
+
 void init1()
 {
     //初始全部给1.8Ma, 攻角为0, 压力给大气压101325, 静温300K, 其余推出如下:
     //声速c=sqrt(1.4*287*300)=347.1887
     //速度u=624.9397, v=0, 密度rho=p/RT=1.176829
     //单位体积总能E=p/(GAMMA-1)+0.5*rho*(u^2+v^2)
-    for(unsigned i=cellBegin-1; i<=cellIEnd+2; i++)
+    for(unsigned i=cellBegin-1; i<=cellIEnd+2; i++)//包括虚网格!
         for(unsigned j=cellBegin-1; j<=cellJEnd+2; j++)
         {
             p[i][j]=101325;
@@ -240,67 +263,81 @@ void init1()
 //上下是壁面, 壁面法向速度为0,壁面切向不变 壁面无穿透边界
 void BCup()
 {
-    double p2,p3,pw;
+    double pw;
     const unsigned j=cellJEnd;
     for(unsigned i=cellBegin; i<=cellIEnd; i++)
     {
-        p2=p[i][j];
-        p3=p[i][j-1];
-        pw=0.5*(3*p2-p3);//壁面的压力用两点外推
+        //pw=0.5*(3*p[i][j]-p[i][j-1]);//壁面的压力用两点外推
+        pw=p[i][j];
+
+        //FcJ[i][j][0]=0;       
+        //FcJ[i][j][1]=pw*N3[i][j].x;
+        //FcJ[i][j][2]=pw*N3[i][j].y;
+        //FcJ[i][j][3]=0;
 
         FcJ[i][j][0]=0;       
-        FcJ[i][j][1]=pw*N3[i][j].x;
-        FcJ[i][j][2]=pw*N3[i][j].y;
+        FcJ[i][j][1]=0;
+        FcJ[i][j][2]=pw;
         FcJ[i][j][3]=0;
+/*
         //虚网格的值靠外推
         for(unsigned k=0; k<=3; k++)
         {
-            Q[i][j+1][k]=2*Q[i][j][k]-  Q[i][j-1][k];
-            Q[i][j+2][k]=3*Q[i][j][k]-2*Q[i][j-1][k];
+            //Q[i][j+1][k]=2*Q[i][j][k]-  Q[i][j-1][k];
+            //Q[i][j+2][k]=3*Q[i][j][k]-2*Q[i][j-1][k];
+            Q[i][j+1][k]=Q[i][j][k];
+            Q[i][j+2][k]=Q[i][j][k];
         }
-        aeroConvert(i,j+2);
-        aeroConvert(i,j+1);
-
+        //aeroConvert(i,j+2);
+        //aeroConvert(i,j+1);
+        extrapolation(i,j,i,j+1);
+        extrapolation(i,j,i,j+2);
+*/
     }
 }
 
-FILE* fpDe;
 
 //下壁面,只有一层虚网格
 void BCdown()
 {
-    fpDe=fopen("debug.txt","w");
 
-    double  p2, p3, pw;
-    unsigned j= cellBegin;
+    double  pw;
+    //const unsigned j= cellBegin;
+    double nx,ny;
     for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
-        p2 = p[i][j];
-        p3 = p[i][j + 1];
-        pw = 0.5 * (3 * p2 - p3); //壁面的压力用两点外推
+        nx=N3[i][1].x; ny=N3[i][1].y;
+        //pw = 0.5 * (3 * p[i][j] - p[i][j+1]); //壁面的压力用两点外推
+        pw=p[i][1];
 
-        FcJ[i][j-1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
-        FcJ[i][j-1][1] = pw * N3[i][j].x;
-        FcJ[i][j-1][2] = pw * N3[i][j].y;
-        FcJ[i][j-1][3] = 0;
-
+        //FcJ[i][j-1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
+        //FcJ[i][j-1][1] = pw * N3[i][j].x;
+        //FcJ[i][j-1][2] = pw * N3[i][j].y;
+        //FcJ[i][j-1][3] = 0;
+        
+        FcJ[i][0][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
+        FcJ[i][0][1] = pw*nx;
+        FcJ[i][0][2] = pw*ny;
+        FcJ[i][0][3] = 0;
+/*
         //虚网格的值靠外推
         for (unsigned k = 0; k <= 3; k++)
         {
-            Q[i][j - 1][k] = 2 * Q[i][j][k] - Q[i][j + 1][k];
-            fprintf(fpDe,"%d %d %f\n",i,k,FcJ[i][0][k]);
+            //Q[i][j - 1][k] = 2 * Q[i][j][k] - Q[i][j + 1][k];
+            Q[i][j-1][k]=Q[i][j][k];
+            //fprintf(fpDe,"%d %d %f\n",i,k,FcJ[i][0][k]);
         }
-        aeroConvert(i, j - 1);
-        /*
-      rho[i][j] = rho[i][j-1];
-        u[i][j] = u[i][j-1];
-        v[i][j] = v[i][j-1];
-        p[i][j] = p[i][j-1];
-        H[i][j] = H[i][j-1];
-        */
+*/
+        //aeroConvert(i, j - 1);
+        //extrapolation(i,j,i,j-1);
+      rho[i][0] = rho[i][1];
+        u[i][0] =   u[i][1];
+        v[i][0] =   v[i][1];
+        p[i][0] =   p[i][1];
+        H[i][0] =   H[i][1];
     }
 }
-
+/*
 //入口维持1.8Ma, 出口用0梯度外推出来;
 void BCright()
 {
@@ -310,42 +347,45 @@ void BCright()
     {
         for (unsigned k = 0; k < 4; k++)
         {
-            Q[cellIEnd+2][j][k] = Q[cellIEnd+1][j][k] = Q[cellIEnd][j][k];
+            Q[i+2][j][k] = Q[i+1][j][k] = Q[i][j][k];
         }
-        aeroConvert(cellIEnd+2,j);
-        aeroConvert(cellIEnd+1,j);
-        /*
+        //aeroConvert(i+2,j);
+        //aeroConvert(i+1,j);
+        //extrapolation(i,j,i+1,j);
+        //extrapolation(i,j,i+2,j);
+        
       rho[i+2][j] =rho[i+1][j] =rho[i][j];
         u[i+2][j] =  u[i+1][j] =  u[i][j];
         v[i+2][j] =  v[i+1][j] =  v[i][j];
         p[i+2][j] =  p[i+1][j] =  p[i][j];
         H[i+2][j] =  H[i+1][j] =  H[i][j];
-        */
+        
     }
 }
-
+*/
 void BCleft()
 {
-    unsigned i=cellBegin-1;
+    const unsigned i=0;//虚网格
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
         p[i][j] = 101325;
         u[i][j] = 624.9397;
         v[i][j] = 0;
-        rho[i][j] = 1.176829;
+      rho[i][j] = 1.176829;
         H[i][j] = 496662.5; //Cp*300+0.5*625*625
 
         Q[i][j][0] = 1.176829; //101325/(287*300)
-        Q[i][j][1] = 735.4473; //1.1768*625
+        Q[i][j][1] = 735.447162211; //1.1768*625
         Q[i][j][2] = 0;
         Q[i][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
 
         const double nx=1, ny=0;
-        const double Vcv=624.9397;
-        FcI[i][j][0]=Q[i][j][0]*Vcv;
-        FcI[i][j][1]=Q[i][j][1]*Vcv+p[i][j]*nx;
-        FcI[i][j][2]=Q[i][j][2]*Vcv+p[i][j]*ny;
-        FcI[i][j][3]=rho[i][j]*H[i][j]*Vcv;
+        const double Vcv0=624.9397;
+        FcI[i][j][0]=rho0*Vcv0;
+        FcI[i][j][1]=rho0*u0*Vcv0+p0*nx;
+        FcI[i][j][2]=rho0*v0*Vcv0+p0*ny;
+        FcI[i][j][3]=rho0*H0*Vcv0;
+  
     }
 }
 
@@ -355,22 +395,17 @@ void solve()
 {
     double dt;
     double rRho, rU, rV, rE;
-    BCdown();
     BCup();
-    BCright();
+    BCdown();
+    //BCright();
     BCleft();
-
+    double T;
     for (I = cellBegin; I <= cellIEnd; I++) //I,J为单元编号, 只在此处变动!!
     {
         for (J = cellBegin; J <= cellJEnd; J++)
         {
 
             c=sqrt(GAMMA*p[I][J]/rho[I][J]);
-
-            IJcheck(rho[I][J] * 1.0, I,J);
-            IJcheck(p[I][J]*1.0,I,J);
-            if(p[I][J]<0) exit(1);
-            if(rho[I][J]<0) exit(2);
 
             //利用Roe格式计算通量
             roeFlux();
@@ -383,12 +418,28 @@ void solve()
                 //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
                 //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
 
-                R[I][J][k] = FcI[I][J][k] * S2[I][J] - FcI[I-1][J][k] * S4[I][J] +
-                 FcJ[I][J][k] * S3[I][J] - FcJ[I][J-1][k] * S1[I][J];
+                R[I][J][k] = FcI[I][J][k] * S2[I][J] - FcI[I-1][J][k] * S4[I][J] + FcJ[I][J][k] * S3[I][J] - FcJ[I][J-1][k] * S1[I][J];
 
                 Q[I][J][k] = Q[I][J][k] - dt / volume[I][J] * R[I][J][k];
             }
             aeroConvert(I,J);
+
+            c=sqrt(GAMMA*p[I][J]/rho[I][J]);
+            T=(H[I][J]-0.5*(SQ(u[I][J])+SQ(v[I][J])) )/Cp;
+            fprintf(fpDe,"T[%2d][%2d]=%.3e\t", I,J, T);
+            fprintf(fpDe,"c[%2d][%2d]=%.3e\t", I,J, c);
+            fprintf(fpDe,"rho[%2d][%2d]=%.3e\t", I,J, rho[I][J]);
+            fprintf(fpDe,"p[%2d][%2d]=%.3e\t", I,J, p[I][J]);
+            fprintf(fpDe,"u[%2d][%2d]=%.3e\t", I,J, u[I][J]);
+            fprintf(fpDe,"v[%2d][%2d]=%12.3e\t", I,J, v[I][J]);
+            fprintf(fpDe,"H[%2d][%2d]=%.3e\n", I,J, H[I][J]);
+
+            IJcheck(T, I, J);
+            IJcheck(rho[I][J] * 1.0, I,J);
+            IJcheck(p[I][J]*1.0,I,J);
+            if(T<0) exit(3);
+            if(p[I][J]<0) exit(1);
+            if(rho[I][J]<0) exit(2);
 
             //记录残差
             rRho = fabs(R[I][J][0]);
@@ -411,12 +462,100 @@ void solve()
 
 /**********************Roe********************************/
 //Roe格式计算对流通量
-
 Vector  FR, FL;
 Vector AARoe;
 double rhoR, rhoL, pR, pL, uR, uL, vR, vL, HR, HL;
 double VcvL, VcvR;
 double nx,ny;
+
+void ARoe()
+{
+    //计算Roe平均量
+    const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
+    const double L=sqrt(rhoL)/ denoLR;//定义两个系数
+    const double R=sqrt(rhoR)/ denoLR;
+    
+    const double rho_=sqrt(rhoL*rhoR);
+    const double u_  =uL*L+uR*R;
+    const double v_  =vL*L+vR*R;
+    const double H_  =HL*L+HR*R;
+    const double q_2 =u_*u_+v_*v_;
+    const double c_  =sqrt((GAMMA-1)*(H_-q_2/2.0));
+
+    const double Vcv_=nx * u_ + ny * v_;
+
+    IJcheck(rhoL, I, J);
+    IJcheck(rhoR, I, J);
+    IJcheck((H_-q_2/2), I, J);
+
+   //计算lambda
+    double lambda1=fabs(Vcv_-c_);
+    double lambda2=fabs(Vcv_   );
+    double lambda3=fabs(Vcv_+c_); 
+
+    //熵修正 Harten's entropy correction
+    const double delta=0.05*c;
+    if(fabs(lambda1)<=delta)
+        lambda1=(lambda1*lambda1+ delta*delta) /(2*delta);
+    if(fabs(lambda2)<=delta)
+        lambda2=(lambda2*lambda2+ delta*delta) /(2*delta);
+    if(fabs(lambda3)<=delta)
+        lambda3=(lambda3*lambda3+ delta*delta) /(2*delta);
+  
+
+    //求出Roe矩阵相关值
+        //delu,delv,delw代表三个分量, delVcv代表大写Vcv的delta
+        //lambda123分别是是Vcv-c, Vcv, Vcv+c
+    const double delP   =pR-pL;
+    const double delRho =rhoR-rhoL;
+    const double delu   =uR-uL;
+    const double delv   =vR-vL;
+    const double delVcv =VcvR-VcvL;
+
+    Vector delF1, delF234, delF5;
+    const double coeff1=lambda1 * (delP-rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
+    delF1[0]  = coeff1 * 1;
+    delF1[1]  = coeff1 * (u_-c_*nx);
+    delF1[2]  = coeff1 * (v_-c_*ny);
+	delF1[3]  = coeff1 * (H_-c_*Vcv_);
+
+    const double coeff2=lambda2 *( delRho-delP/SQ(c_) );
+    const double coeff3=lambda2 * rho_;
+    delF234[0]= coeff2; 
+    delF234[1]= coeff2 * u_  + coeff3*(delu - delVcv*nx);
+    delF234[2]= coeff2 * v_  + coeff3*(delv - delVcv*ny);                
+    delF234[3]= coeff2 * q_2/2.0 + coeff3*(u_*delu + v_*delv - Vcv_*delVcv);
+    
+    const double coeff5=lambda3 * (delP+rho_*c_*delVcv)/(2*SQ(c_));
+    delF5[0]  = coeff5 *1;
+    delF5[1]  = coeff5 *(u_+c_*nx);
+    delF5[2]  = coeff5 *(v_+c_*ny);    
+    delF5[3]  = coeff5 *(H_+c_*Vcv_);
+
+    for(unsigned k=0; k<=3; k++)
+    {
+        AARoe[k]=delF1[k]+delF234[k]+delF5[k];
+        /*
+        if(delF1[k]<0 || delF234[k]<0 || delF5[k]<0) 
+        {
+            printf("\ndelF<0! (%d,%d)\n",I,J);
+            exit(5);
+        }
+        */
+    }
+    
+    //分裂Fc
+    FR[0] = rhoR*VcvR;
+    FR[1] = rhoR*VcvR*uR + nx*pR;
+    FR[2] = rhoR*VcvR*vR + ny*pR;
+    FR[3] = rhoR*VcvR*HR;
+
+    FL[0] = rhoL*VcvL;
+    FL[1] = rhoL*VcvL*uL + nx*pL;
+    FL[2] = rhoL*VcvL*vL + ny*pL;
+    FL[3] = rhoL*VcvL*HL;
+}
+
 
 void splitI()
 {
@@ -442,82 +581,6 @@ void splitJ()
     VcvL=uL*N3[I][J-1].x+vL*N3[I][J-1].y;
 }
 
-void ARoe()
-{
-    //计算Roe平均量
-    const double denoLR=sqrt(rhoL)+ sqrt(rhoR);
-    const double L=sqrt(rhoL)/ denoLR;//定义两个系数
-    const double R=sqrt(rhoR)/ denoLR;
-    
-    const double rho_=sqrt(rhoL*rhoR);
-    const double u_  =uL*L+uR*R;
-    const double v_  =vL*L+vR*R;
-    const double H_  =HL*L+HR*R;
-    const double q_2 =u_*u_+v_*v_;
-    const double c_  =sqrt((GAMMA-1)*(H_-q_2/2));
-
-    const double Vcv_=nx * u_ + ny * v_;
-
-    IJcheck(rhoL, I, J);
-    IJcheck(rhoR, I, J);
-    IJcheck((H_-q_2/2), I, J);
-
-   //计算lambda
-    double lambda1=fabs(Vcv_-c_);
-    double lambda2=fabs(Vcv_   );
-    double lambda3=fabs(Vcv_+c_); 
-
-    //熵修正 Harten's entropy correction
-    const double delta=0.05*c;
-    if(fabs(lambda1)<=delta)
-        lambda1=(lambda1*lambda1+ delta*delta) /(2*delta);
-    if(fabs(lambda3)<=delta)
-        lambda3=(lambda3*lambda3+ delta*delta) /(2*delta);
-  
-
-    //求出Roe矩阵相关值
-        //delu,delv,delw代表三个分量, delVcv代表大写Vcv的delta
-        //lambda123分别是是Vcv-c, Vcv, Vcv+c
-    const double delP   =pR-pL;
-    const double delRho =rhoR-rhoL;
-    const double delu   =uR-uL;
-    const double delv   =vR-vL;
-    const double delVcv =VcvR-VcvL;
-
-    Vector delF1, delF234, delF5;
-    const double coeff1=lambda1 * (delP-rho_*c_*delVcv)/(2*SQ(c_));//定义系数以减少计算量
-    delF1[0]  = coeff1 * 1;
-    delF1[1]  = coeff1 * (u_-c_*nx);
-    delF1[2]  = coeff1 * (u_-c_*ny);
-	delF1[3]  = coeff1 * (H_-c_*Vcv_);
-
-    const double coeff2=lambda2 *( delRho-delP/SQ(c_) );
-    const double coeff3=lambda2 * rho_;
-    delF234[0]= coeff2; 
-    delF234[1]= coeff2 * u_  + coeff3*(delu - delVcv*nx);
-    delF234[2]= coeff2 * v_  + coeff3*(delv - delVcv*ny);                
-    delF234[3]= coeff2 * q_2 + coeff3*(u_*delu + v_*delv - Vcv_*delVcv);
-    
-    const double coeff5=lambda3 * (delP+rho_*c_*delVcv)/(2*SQ(c_));
-    delF5[0]  = coeff5 *1;
-    delF5[1]  = coeff5 *(u_+c_*nx);
-    delF5[2]  = coeff5 *(v_+c_*ny);    
-    delF5[3]  = coeff5 *(H_+c_*Vcv_);
-
-    for(unsigned k=0; k<=3; k++)
-        AARoe[k]=delF1[k]+delF234[k]+delF5[k];
-    
-    //分裂Fc
-    FR[0] = rhoR*VcvR;
-    FR[1] = rhoR*VcvR*uR + nx*pR;
-    FR[2] = rhoR*VcvR*vR + ny*pR;
-    FR[3] = rhoR*VcvR*HR;
-
-    FL[0] = rhoL*VcvL;
-    FL[1] = rhoL*VcvL*uL + nx*pL;
-    FL[2] = rhoL*VcvL*vL + ny*pL;
-    FL[3] = rhoL*VcvL*HL;
-}
 
 void roeFlux()
 {   
@@ -539,20 +602,6 @@ void roeFlux()
     ARoe();
     for(unsigned k=0; k<4; k++)
         FcJ[I][J][k]=0.5*( FR[k] + FL[k] - AARoe[k] );
-    /*
-    if(J==1)
-    {
-        double p2, p3, pw;
-        p2 = p[I][J];
-        p3 = p[I][J + 1];
-        pw = 0.5 * (3 * p2 - p3); //壁面的压力用两点外推
-
-        FcJ[I][J][0] = 0;     
-        FcJ[I][J][1] = pw * N3[I][J].x;
-        FcJ[I][J][2] = pw * N3[I][J].y;
-        FcJ[I][J][3] = 0;
-    }
-    */
 }
 
  
@@ -565,6 +614,16 @@ void aeroConvert(Index i, Index j)
     v[i][j] = Q[i][j][2] / rho[i][j];
     p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
     H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];
+/*
+    for(unsigned h=0; h<5; h++)
+    {
+        QQ[i][j][0] = rho[i][j];
+        QQ[i][j][1] = u[i][j];
+        QQ[i][j][2] = v[i][j];
+        QQ[i][j][3] = p[i][j];
+        QQ[i][j][4] = H[i][j];
+    }
+*/    
 }
 
 void print()
@@ -593,6 +652,8 @@ void print()
 /***************************main  **************************/
 int main()
 {  
+    fpDe=fopen("debug.txt","w");
+
 	cout<<"\nCase 1 for inlet 1.8Ma; 2 for 1.5Ma\n\nCurrent Case: "<<caseNo<<endl;
     genMesh();//生成网格
     cellGeometry();//计算各个单元格面积,方向矢量等
@@ -611,6 +672,8 @@ int main()
     for (step=1;  step<=2; step++)
     {   
         printf("p[50][1]= %f\n", p[50][1]);
+        printf("H[51][1]=%f\n",H[51][1]);
+
         cout<<"step= "<<step<<endl;
         solve();                  //求解
         fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e\n", step, residualRho, residualU, residualV, residualE);
