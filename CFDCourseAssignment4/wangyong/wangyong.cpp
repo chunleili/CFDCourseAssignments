@@ -463,82 +463,6 @@ dtGlobal=100;
 	} /////////////////
 }
 
-void record()
-{
-	for (j = 1; j < 70; j++)
-	{
-		for (i = 1; i < 330; i++)
-		{
-			nodesc1[i][j][0] = 0.25 * (nodes[i][j][0] + nodes[i + 1][j][0] + nodes[i + 1][j + 1][0] + nodes[i][j + 1][0]);
-			nodesc1[i][j][1] = 0.25 * (nodes[i][j][1] + nodes[i + 1][j][1] + nodes[i + 1][j + 1][1] + nodes[i][j + 1][1]);
-		}
-	}
-	for (j = 1; j < 70; j++)
-	{
-		nodesc1[0][j][0] = 0.5 * (nodes[1][j][0] + nodes[1][j + 1][0]);
-		nodesc1[0][j][1] = 0.5 * (nodes[1][j][1] + nodes[1][j + 1][1]);
-		nodesc1[330][j][0] = 0.5 * (nodes[330][j][0] + nodes[330][j + 1][0]);
-		nodesc1[330][j][1] = 0.5 * (nodes[330][j][1] + nodes[330][j + 1][1]);
-	}
-	for (i = 1; i < 330; i++)
-	{
-		nodesc1[i][0][0] = 0.5 * (nodes[i][0][0] + nodes[i + 1][0][0]);
-		nodesc1[i][0][1] = 0.5 * (nodes[i][0][1] + nodes[i + 1][0][1]);
-		nodesc1[i][70][0] = 0.5 * (nodes[i][70][0] + nodes[i + 1][70][0]);
-		nodesc1[i][70][1] = 0.5 * (nodes[i][70][1] + nodes[i + 1][70][1]);
-	}
-	nodesc1[0][0][0] = nodes[1][1][0];
-	nodesc1[0][0][1] = nodes[1][0][1];
-	nodesc1[330][0][0] = nodes[330][1][0];
-	nodesc1[330][0][1] = nodes[330][0][1];
-	nodesc1[330][70][0] = nodes[330][70][0];
-	nodesc1[330][70][1] = nodes[330][70][1];
-	nodesc1[0][70][0] = nodes[1][70][0];
-	nodesc1[0][70][1] = nodes[1][70][1];
-	for (j = 1; j < 70; j++)
-	{
-		pho1[0][j] = 0.5 * (pho1[0][j] + pho1[1][j]);
-		vx1[0][j] = 0.5 * (vx1[0][j] + vx1[1][j]);
-		vy1[0][j] = 0.5 * (vy1[0][j] + vy1[1][j]);
-		pre1[0][j] = 0.5 * (pre1[0][j] + pre1[1][j]);
-		pho1[330][j] = 0.5 * (pho1[330][j] + pho1[259][j]);
-		vx1[330][j] = 0.5 * (vx1[330][j] + vx1[259][j]);
-		vy1[330][j] = 0.5 * (vy1[330][j] + vy1[259][j]);
-		pre1[330][j] = 0.5 * (pre1[330][j] + pre1[259][j]);
-	}
-	for (i = 1; i < 330; i++)
-	{
-		pho1[i][0] = 0.5 * (pho1[i][0] + pho1[i][1]);
-		vx1[i][0] = 0.5 * (vx1[i][0] + vx1[i][1]);
-		vy1[i][0] = 0.5 * (vy1[i][0] + vy1[i][1]);
-		pre1[i][0] = 0.5 * (pre1[i][0] + pre1[i][1]);
-		pho1[i][70] = 0.5 * (pho1[i][70] + pho1[i][69]);
-		vx1[i][70] = 0.5 * (vx1[i][70] + vx1[i][69]);
-		vy1[i][70] = 0.5 * (vy1[i][70] + vy1[i][69]);
-		pre1[i][70] = 0.5 * (pre1[i][70] + pre1[i][69]);
-	}
-	pho1[0][0] = pho1[1][0];
-	vx1[0][0] = vx1[1][0];
-	vy1[0][0] = vy1[1][0];
-	pre1[0][0] = pre1[1][0];
-
-	pho1[0][70] = pho1[1][70];
-	vx1[0][70] = vx1[1][70];
-	vy1[0][70] = vy1[1][70];
-	pre1[0][70] = pre1[1][70];
-
-	pho1[330][0] = pho1[259][0];
-	vx1[330][0] = vx1[259][0];
-	vy1[330][0] = vy1[259][0];
-	pre1[330][0] = pre1[259][0];
-
-	pho1[330][70] = pho1[259][70];
-	vx1[330][70] = vx1[259][70];
-	vy1[330][70] = vy1[259][70];
-	pre1[330][70] = pre1[259][70];
-	////////////////////////////////////////
-
-}
 
 int main()
 {
@@ -575,7 +499,7 @@ int main()
 	}
 
 
-	record();
+	//record();
 
 	fr = fopen("WYplotflow.dat", "w");
 	fprintf(fr, "Title=\"NOZZLE\"\nVariables=\"x\",\"y\",\"dens\",\"velx\",\"vely\",\"spre\",\"ttem\",\"mach\"\nZone T=\"NOZZLE\" i=331,j=71,f=point \n");
@@ -585,7 +509,7 @@ int main()
 		{
 			T1[i][j] = pre1[i][j] / R / pho1[i][j];
 			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
-			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodesc1[i][j][0], nodesc1[i][j][1], pho1[i][j], vx1[i][j], vy1[i][j], pre1[i][j], T1[i][j], ma1[i][j]);
+			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodes[i][j][0], nodes[i][j][1], pho1[i][j], vx1[i][j], vy1[i][j], pre1[i][j], T1[i][j], ma1[i][j]);
 		}
 	} //////////////
 
