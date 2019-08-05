@@ -8,16 +8,6 @@
 using namespace std;
 
 /***************************MACRO             **************************/
-#define forAll(codes)\
-{\
-    for(unsigned i=cellBegin; i<=cellIEnd; i++)\
-        for(unsigned j=cellBegin; j<=cellJEnd; j++) \
-            {\
-                codes\
-            }\
-}
-//用以循环所有实际的单元格
-
 #define IJcheck(val,i,j) if(val<0) cout<<"\n&IJCheck: "<<#val\
 <<" ("<<i<<","<<j<<") = "<<val<<" is negative!\n"
 
@@ -28,9 +18,7 @@ using namespace std;
 const int maxI=250, maxJ=50;
 const int block1=(int)(maxI*0.2+0.1), block2=(int)(maxI*0.2+0.1);//注意随着maxI更改
 const int cellBegin=1, cellIEnd=maxI, cellJEnd=maxJ; //0是左下虚网格,实际网格从下标1开始,到下标maxI/J结束
-const int STOP_STEP=100;
 
-const double RESIDUAL_LIMIT=1e-3;
 const double GAMMA=1.4;
 const double Rg=287;
 const double Cp=1004.5;//1.4/0.4*287
@@ -92,7 +80,6 @@ double residualRho, residualU, residualV, residualE;
 
 FILE* fpDe;
 
-
 /********************************Mesh**************************************/
 //虚网格的几何参数和临近实际网格一致, 但是不需要生成网格点, 为了和单元格编号一一对应,也从1开始
 //左下点代表的编号和本单元格编号一致
@@ -150,12 +137,16 @@ void printMesh()
     FILE* fpG;
     fpG=fopen("cellGeometry.txt", "w");
     fprintf(fpG,"i   j   x    y    volume   N2.x   N2.y    N3.x    N3.y   S1   S2   S3   S4\n");
-    forAll( 
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+    {
+        for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        {
             fprintf(fpG, "%-3d  %-3d  %.3f %.3f %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e \n",
             i, j, mesh[i][j].x, mesh[i][j].y,
             volume[i][j], N2[i][j].x, N2[i][j].y, N3[i][j].x, N3[i][j].y,
             S1[i][j], S2[i][j], S3[i][j], S4[i][j] );
-    );
+        } 
+    }
     fclose(fpG);
 }
 
@@ -571,17 +562,22 @@ void print()
     fpField=fopen("field.dat", "w");
     fprintf(fpField, "Title=\"Field\"\nVariables=\"x\",\"y\",\"rho\",\
     \"u\",\"v\",\"p\",\"T\",\"Ma\"\nZone T=\"zone1\" i=%d,j=%d,f=point\n", maxI, maxJ);
-    forAll(
-        xx=mesh[i][j].x;
-        yy=mesh[i][j].y;
-        rrho=rho[i][j];
-        pp=p[i][j];
-        TT=pp/(rrho*287);
-        uu=u[i][j];
-        vv=v[i][j];
-        MMa=sqrt( ( SQ(u[i][j])+SQ(v[i][j]) ) / (GAMMA*p[i][j]/rho[i][j]) );
-        fprintf(fpField, "%.3f %.3f %.4e %.4e %.4e %.4e %.4e %.4e \n", xx, yy, rrho, uu,vv, pp, TT, MMa );
-    ); 
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+    {
+        for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        {
+            xx = mesh[i][j].x;
+            yy = mesh[i][j].y;
+            rrho = rho[i][j];
+            pp = p[i][j];
+            TT = pp / (rrho * 287);
+            uu = u[i][j];
+            vv = v[i][j];
+            MMa = sqrt((SQ(u[i][j]) + SQ(v[i][j])) / (GAMMA * p[i][j] / rho[i][j]));
+            fprintf(fpField, "%.3f %.3f %.4e %.4e %.4e %.4e %.4e %.4e \n",
+                    xx, yy, rrho, uu, vv, pp, TT, MMa);
+        }
+    }
     fclose(fpField);
 }   
 
