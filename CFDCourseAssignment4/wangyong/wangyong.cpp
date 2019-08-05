@@ -5,28 +5,37 @@
 #define a 2
 #define gama 1.4
 #define R 287.06
-#define cfl 0.8
+#define CFL 0.8
 #define SQ(a) ((a)*(a))
 FILE *fp, *fq, *fr, *fs, *fg;
-double nodes[331][71][2], nodesc1[331][71][2];
-int i, j, k, m, maxi, maxj, max;
-int maxi2, maxj2, max2;
-double dyi[331][71], dxi[331][71], dyj[331][71], dxj[331][71];
-double sli[330][71], slj[331][71], area[330][71];
-double pho1[331][71], pre1[331][71], vx1[331][71], vy1[331][71], T1[331][71], ma1[331][71];
+const unsigned maxI=330, maxJ=70;
 
-double total_pre1[331][71], total_T1[331][71];
-double  H[331][71], Fjr[331][71][4], Fjl[331][71][4], Fir[331][71][4], Fil[331][71][4];
-double AQi[331][71][4], AQj[331][71][4], Flux[331][71][4], Q[331][71][4];
-double imax, jmax, tyj, txj, tyi, txi, tsli, tslj, vi, vj, sonic, chvel, dt, tres1, real[331];
+typedef double Field[maxI+1][maxJ+1][4];
+typedef double ScalarField[maxI+1][maxJ+1];
+typedef double Vector[4];
+typedef double MeshPoint[maxI+1][maxJ+1][2];
+
+MeshPoint nodes, nodesc1;
+int i, j, k;
+ScalarField dyi, dxi, dyj, dxj;
+ScalarField S1,S2,S3, S4, area;
+MeshPoint N1,N2,N3,N4;
+ScalarField rho, pre1, u, v, T, Ma,H;
+
+ScalarField total_pre1, total_T1;
+Field  Residual, Q;
+double tyj, txj, tyi, txi, tsli, tslj, vi, vj, sonic, chvel, dt;
 double vnorm, vtemp, maxflux, maxflux2, maxflux3, maxflux4;
 const double GAMMA = 1.4;
 double dtGlobal=100;
 
+Vector FcI, FcJ, FcIright,FcJup;
+Field Fc1,Fc2,Fc3,Fc4;
+
 void mesh_generation()
 {
 
-	for (j = 0; j < 71; j++)
+	for (j = 0; j < maxJ+1; j++)
 	{
 		for (i = 0; i < 11; i++)
 		{
@@ -56,7 +65,7 @@ void mesh_generation()
 			nodes[381 - i][j][0] = 2 - (log((i - 151) * (pow(e, a) - 1) / 80 + 1)) / a;
 			nodes[i][j][1] = 0.583585301908299 / 70 * j;
 		}
-		for (i = 231; i < 331; i++)
+		for (i = 231; i < maxI+1; i++)
 		{
 			nodes[i][j][0] = 0.04 * (i - 230) + 2;
 			nodes[i][j][1] = 0.583585301908299 / 70 * j;
@@ -66,61 +75,78 @@ void mesh_generation()
 }
 void initialize()
 {
-	for (j = 0; j < 71; j++)
+
+	for (j = 0; j < maxJ+1; j++)
 	{
-		for (i = 0; i < 331; i++)
+		for (i = 0; i < maxI+1; i++)
 		{
-			vx1[i][j] = 400; //3
-			vy1[i][j] = 0;
+			u[i][j] = 400; //3
+			v[i][j] = 0;
 			pre1[i][j] = 101325;
-			T1[i][j] = 230;
-			pho1[i][j] = pre1[i][j] / T1[i][j] / R;
-			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
-			H[i][j] = (pre1[i][j] / (gama - 1) + 0.5 * pho1[i][j] * (pow(vy1[i][j], 2) + pow(vx1[i][j], 2)) +
-			 pre1[i][j]) / pho1[i][j];
+			T[i][j] = 230;
+			rho[i][j] = pre1[i][j] / T[i][j] / R;
+			Ma[i][j] = sqrt(u[i][j] * u[i][j] + v[i][j] * v[i][j]) / sqrt(gama * R * T[i][j]);
+			H[i][j] = (pre1[i][j] / (gama - 1) + 0.5 * rho[i][j] * (pow(v[i][j], 2) + pow(u[i][j], 2)) +
+			pre1[i][j]) / rho[i][j];
 		}
 	}
-	for (j = 1; j < 70; j++)
+	for (j = 1; j < maxJ; j++)
 	{
-		for (i = 1; i < 330; i++)
+		for (i = 1; i < maxI; i++)
 		{
-			Q[i][j][0] = pho1[i][j];
-			Q[i][j][1] = pho1[i][j] * vx1[i][j];
-			Q[i][j][2] = pho1[i][j] * vy1[i][j];
-			Q[i][j][3] = pre1[i][j] / (gama - 1) + 0.5 * pho1[i][j] * (vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]);
+			Q[i][j][0] = rho[i][j];
+			Q[i][j][1] = rho[i][j] * u[i][j];
+			Q[i][j][2] = rho[i][j] * v[i][j];
+			Q[i][j][3] = pre1[i][j] / (gama - 1) + 0.5 * rho[i][j] * (u[i][j] * u[i][j] + v[i][j] * v[i][j]);
 		}
 	}
 }
-void area_caculate()
+
+
+void area_calculate()
 {
-	for (j = 0; j < 71; j++)
-	{
-		for (i = 0; i < 330; i++)
+	double x1,x2,x3,x4,y1,y2,y3,y4;
+	for(unsigned i=0; i<=maxI; i++)//注意范围
+        for(unsigned j=0; j<=maxJ; j++)
 		{
+			x1 = nodes[i][j][0];
+			x2 = nodes[i + 1][j][0];
+			x3 = nodes[i + 1][j + 1][0];
+			x4 = nodes[i][j + 1][0];
+
+			y1 = nodes[i][j][1];
+			y2 = nodes[i + 1][j][1];
+			y3 = nodes[i + 1][j + 1][1];
+			y4 = nodes[i][j + 1][1];
+
+			S1[i][j] = sqrt(SQ(x1 - x2) + SQ(y1 - y2)); //下侧面积S1
+			S2[i][j] = sqrt(SQ(x2 - x3) + SQ(y2 - y3)); //右侧面积S2
+			S3[i][j] = sqrt(SQ(x3 - x4) + SQ(y3 - y4)); //上侧面积S3
+			S4[i][j] = sqrt(SQ(x4 - x1) + SQ(y4 - y1)); //左侧面积S4
+
 			dyi[i][j] = nodes[i][j][1] - nodes[i + 1][j][1];
 			dxi[i][j] = nodes[i + 1][j][0] - nodes[i][j][0];
-			sli[i][j] = sqrt(dyi[i][j] * dyi[i][j] + dxi[i][j] * dxi[i][j]);
-		}
-	}
-	for (j = 0; j < 70; j++)
-	{
-		for (i = 0; i < 331; i++)
-		{
 			dyj[i][j] = nodes[i][j + 1][1] - nodes[i][j][1];
 			dxj[i][j] = nodes[i][j][0] - nodes[i][j + 1][0];
-			slj[i][j] = sqrt(dyj[i][j] * dyj[i][j] + dxj[i][j] * dxj[i][j]);
-		}
-	}
-	for (j = 0; j < 70; j++)
-	{
-		for (i = 0; i < 330; i++)
-		{
-			area[i][j] = (dyj[i][j] + dyj[i + 1][j]) * dxi[i][j] / 2;
-		}
-	} ///////////////////////////////
 
+			//面法向单位矢量, 实际上N1.x=sin(theta), N1[1]=cos(theta), 再带上方向
+			N1[i][j][0] = (y2 - y1) / S1[i][j];
+			N1[i][j][1] = (x1 - x2) / S1[i][j];
 
+			N2[i][j][0] = (y3 - y2) / S2[i][j];
+			N2[i][j][1] = (x2 - x3) / S2[i][j];
+
+			N3[i][j][0] = (y4 - y3) / S3[i][j];
+			N3[i][j][1] = (x3 - x4) / S3[i][j];
+
+			N4[i][j][0] = (y1 - y4) / S4[i][j];
+			N4[i][j][1] = (x4 - x1) / S4[i][j];
+
+			area[i][j] =  0.5 * ((x1 - x3) * (y2 - y4) + (x4 - x2) * (y1 - y3));
+
+		}
 }
+
 
 
 double pai(double Ma)
@@ -132,69 +158,64 @@ double pai(double Ma)
 
 void boundary_conditions()
 {
-	for (j = 1; j < 70; j++) //进口边界条件 分区1 亚音进口，一个变量外推
+	for (j = 1; j < maxJ; j++) //进口边界条件 分区1 亚音进口，一个变量外推
 	{
 
 		total_pre1[0][j] = 250000;
-		total_T1[0][j] = 330;
-		vy1[0][j] = 0;
+		total_T1[0][j] = maxI;
+		v[0][j] = 0;
 
-		T1[0][j] = T1[1][j];
+		T[0][j] = T[1][j];
 		//静温外推
-		ma1[0][j] = sqrt((total_T1[0][j] / T1[0][j] - 1) * 2 / (gama - 1)); //壁面速度为0
-		pre1[0][j] = total_pre1[0][j] * pai(ma1[0][j]);
-		pho1[0][j] = pre1[0][j] / R / T1[0][j];
-		vx1[0][j] = ma1[0][j] * sqrt(gama * R * T1[0][j]);
+		Ma[0][j] = sqrt((total_T1[0][j] / T[0][j] - 1) * 2 / (gama - 1)); //壁面速度为0
+		pre1[0][j] = total_pre1[0][j] * pai(Ma[0][j]);
+		rho[0][j] = pre1[0][j] / R / T[0][j];
+		u[0][j] = Ma[0][j] * sqrt(gama * R * T[0][j]);
 		
-	/*
-		pho1[0][j]=1.176829;
-		vx1[]
-		vy1[0][j] = 0;
-		*/
 	}
 
-	for (j = 1; j < 70; j++)
+	for (j = 1; j < maxJ; j++)
 	{
-		if (ma1[329][j] >= 1) //超音全部外推
+		if (Ma[maxI-1][j] >= 1) //超音全部外推
 		{
-			vx1[330][j] = vx1[329][j];
-			vy1[330][j] = vy1[329][j];
-			pre1[330][j] = pre1[329][j];
-			T1[330][j] = T1[329][j];
-			pho1[330][j] = pre1[330][j] / R / T1[330][j];
-			ma1[330][j] = sqrt(vx1[330][j] * vx1[330][j] + vy1[330][j] * vy1[330][j]) / sqrt(gama * R * T1[330][j]);
+			u[maxI][j] = u[maxI-1][j];
+			v[maxI][j] = v[maxI-1][j];
+			pre1[maxI][j] = pre1[maxI-1][j];
+			T[maxI][j] = T[maxI-1][j];
+			rho[maxI][j] = pre1[maxI][j] / R / T[maxI][j];
+			Ma[maxI][j] = sqrt(u[maxI][j] * u[maxI][j] + v[maxI][j] * v[maxI][j]) / sqrt(gama * R * T[maxI][j]);
 		}
 		else //亚音3个外推   静压给定
 		{
-			pre1[330][j] = 85419;
-			vx1[330][j] = vx1[329][j];
-			vy1[330][j] = vy1[329][j];
-			T1[330][j] = T1[329][j];
-			pho1[330][j] = pre1[330][j] / R / T1[330][j];
-			ma1[330][j] = sqrt(vx1[330][j] * vx1[330][j] + vy1[330][j] * vy1[330][j]) / sqrt(gama * R * T1[330][j]);
+			pre1[maxI][j] = 85419;
+			u[maxI][j] = u[maxI-1][j];
+			v[maxI][j] = v[maxI-1][j];
+			T[maxI][j] = T[maxI-1][j];
+			rho[maxI][j] = pre1[maxI][j] / R / T[maxI][j];
+			Ma[maxI][j] = sqrt(u[maxI][j] * u[maxI][j] + v[maxI][j] * v[maxI][j]) / sqrt(gama * R * T[maxI][j]);
 		}
 	}
 
 	for (i = 1; i < 151; i++) //喷管壁面边界条件
 	{
 
-		double nx=dyi[i][70] / sli[i][70];
-		double ny=dxi[i][70] / sli[i][70];
+		double nx=dyi[i][maxJ] / S1[i][maxJ];
+		double ny=dxi[i][maxJ] / S1[i][maxJ];
 
-		Fjl[i][70][0]=0;
-		Fjl[i][70][1]=pre1[i][70]*nx;
-		Fjl[i][70][0]=pre1[i][70]*ny;
-		Fjl[i][70][1]=0;			
+		Fc1[i][maxJ][0]=0;
+		Fc1[i][maxJ][1]=pre1[i][maxJ]*nx;
+		Fc1[i][maxJ][2]=pre1[i][maxJ]*ny;
+		Fc1[i][maxJ][3]=0;			
 	}
 
-	for (i = 1; i < 330; i++) //对称边界条件
+	for (i = 1; i < maxI; i++) //对称边界条件
 	{
-		pho1[i][0] = pho1[i][1];
-		vx1[i][0] = vx1[i][1];
-		vy1[i][0] = 0;
+		rho[i][0] = rho[i][1];
+		u[i][0] = u[i][1];
+		v[i][0] = 0;
 		pre1[i][0] = pre1[i][1];
-		T1[i][0] = pre1[i][0] / pho1[i][0] / R;
-		ma1[i][0] = sqrt(vx1[i][0] * vx1[i][0] + vy1[i][0] * vy1[i][0]) / sqrt(gama * R * T1[i][0]);
+		T[i][0] = pre1[i][0] / rho[i][0] / R;
+		Ma[i][0] = sqrt(u[i][0] * u[i][0] + v[i][0] * v[i][0]) / sqrt(gama * R * T[i][0]);
 	}
 
 	////////////////////////////
@@ -202,13 +223,13 @@ void boundary_conditions()
 	for (i = 1; i < 81; i++) //下壁面条件
 	{
 
-		double nx=dyi[i][0] / sli[i][0];
-		double ny=dxi[i][0] / sli[i][0];
+		double nx=dyi[i][0] / S1[i][0];
+		double ny=dxi[i][0] / S1[i][0];
 
-		Fjl[i][0][0]=0;
-		Fjl[i][0][1]=pre1[i][0]*nx;
-		Fjl[i][0][0]=pre1[i][0]*ny;
-		Fjl[i][0][1]=0;	
+		Fc1[i][0][0]=0;
+		Fc1[i][0][1]=pre1[i][0]*nx;
+		Fc1[i][0][2]=pre1[i][0]*ny;
+		Fc1[i][0][3]=0;	
 
 	}
 }
@@ -217,7 +238,6 @@ double rhoR,rhoL,uR,uL,vR,vL,nx,ny,pR,pL,HR,HL;
 double AARoe[4];
 double FR[4], FL[4];
 double c;
-double SI, SJ;
 
 void calARoe()
 {
@@ -302,121 +322,116 @@ void calARoe()
 
 void roe() //利用roe格式求解
 {
-
+	maxflux = 0;
+	maxflux2 = 0;
+	maxflux3 = 0;
+	maxflux4 = 0;
+	
 	//计算beta与AQ
-	for (j = 1; j < 71; j++)
+	for (j = 1; j < maxJ+1; j++)
 	{
-		for (i = 1; i < 331; i++)
+		for (i = 1; i < maxI+1; i++)
 		{   
-			nx=dyj[i][j] / slj[i][j];
-			ny=dxj[i][j] / slj[i][j];
-			SI=slj[i][j];
-			
-			pL = pre1[i - 1][j], pR = pre1[i][j];
-			rhoL = pho1[i - 1][j], rhoR = pho1[i][j];
-			uL = vx1[i - 1][j], uR = vx1[i][j];
-			vL = vy1[i - 1][j], vR = vy1[i][j];
-			HL = H[i - 1][j], HR = H[i][j];
-
-			c = sqrt(GAMMA*pre1[i][j]/pho1[i][j]);
-			double T = pre1[i][j]/(287*pho1[i][j]);
+			c = sqrt(GAMMA*pre1[i][j]/rho[i][j]);
+			double T = pre1[i][j]/(287*rho[i][j]);
 			if (T < 0)
 			{
 				printf("\n****** T<0!! T= %f\n ", T); //exit(2);
 			}
 
+			nx=dyj[i][j] / S4[i][j];
+			ny=dxj[i][j] / S4[i][j];
+			
+			pL = pre1[i - 1][j], pR = pre1[i][j];
+			rhoL = rho[i - 1][j], rhoR = rho[i][j];
+			uL = u[i - 1][j], uR = u[i][j];
+			vL = v[i - 1][j], vR = v[i][j];
+			HL = H[i - 1][j], HR = H[i][j];
+
 			calARoe();
 
-			for (unsigned k = 0; k <= 3; k++)
-				AQi[i][j][k] = SI*AARoe[k];
 
 			for (unsigned k = 0; k <= 3; k++)
 			{
-				Fil[i][j][k] = SI * FL[k];
-				Fir[i][j][k] = SI * FR[k];
+				Fc4[i][j][k] = S4[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
 			}
-		}
-	} 
-	
-	///////////////////////
 
+			nx=dyi[i][j] / S1[i][j];
+			ny=dxi[i][j] / S1[i][j];
 
-	for (j = 1; j < 71; j++)
-	{
-		for (i = 1; i < 331; i++)
-		{   
-			nx=dyi[i][j] / sli[i][j];
-			ny=dxi[i][j] / sli[i][j];
-
-			SJ=sli[i][j];
-			
 			pL   = pre1[i][j-1],   pR = pre1[i][j];
-			rhoL = pho1[i][j-1], rhoR = pho1[i][j];
-			uL   =  vx1[i][j-1],   uR =  vx1[i][j];
-			vL   =  vy1[i][j-1],   vR =  vy1[i][j];
+			rhoL = rho[i][j-1],  rhoR = rho[i][j];
+			uL   =  u[i][j-1],     uR =  u[i][j];
+			vL   =  v[i][j-1],     vR =  v[i][j];
 			HL   =    H[i][j-1],   HR =    H[i][j];
  
 			calARoe();
 
 			for (unsigned k = 0; k <= 3; k++)
-				AQj[i][j][k] = SJ*AARoe[k];
-
-			for (unsigned k = 0; k <= 3; k++)
 			{
-				Fjl[i][j][k] = SJ * FL[k];
-				Fjr[i][j][k] = SJ * FR[k];
+				Fc1[i][j][k] = S1[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
 			}
 
 		}
 	}
-	maxflux = 0;
-	maxi = 0;
-	maxj = 0;
-	max = 0;
-	maxflux2 = 0;
-	maxflux3 = 0;
-	maxflux4 = 0;
-	maxi2 = 0;
-	maxj2 = 0;
-	max2 = 0;
 
-	double FcI[4], FcJ[4], FcIright[4],FcJup[4];
-	
-	for (j = 1; j < 70; j++)
+
+	for (j = 1; j < maxJ; j++)
 	{
-		for (i = 1; i < 330; i++)
+		for (i = 1; i < maxI; i++)
 		{
 			for (unsigned k = 0; k < 4; k++)
             {
-                //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
-                //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
-				FcI[k]  =(Fil[i][j][k] + Fir[i][j][k] - AQi[i][j][k]) / 2;
-				FcIright[k]=(Fil[i + 1][j][k] + Fir[i + 1][j][k] - AQi[i + 1][j][k]) / 2;
-				FcJ[k]  =(Fjl[i][j][k] + Fjr[i][j][k] - AQj[i][j][k]) / 2;
-				FcJup[k]=(Fjl[i][j + 1][k] + Fjr[i][j + 1][k] - AQj[i][j + 1][k]) / 2;
+				Fc2[i][j][k]  =Fc4[i+1][j][k];
+				Fc3[i][j][k]  =Fc1[i][j+1][k];
 
-                Flux[i][j][k] = -FcI[k]  + FcIright[k]  - FcJ[k]  + FcJup[k] ;
+                Residual[i][j][k] = -Fc1[i][j][k]  + Fc2[i][j][k]  - Fc4[i][j][k]  + Fc3[i][j][k] ;
             }
 
-			if (Flux[i][j][0] > maxflux)
+			if (Residual[i][j][0] > maxflux)
 			{
-				maxflux = Flux[i][j][0];
+				maxflux = Residual[i][j][0];
 			}
-			if (Flux[i][j][1] > maxflux2)
+			if (Residual[i][j][1] > maxflux2)
 			{
-				maxflux2 = Flux[i][j][1];
+				maxflux2 = Residual[i][j][1];
 			}
-			if (Flux[i][j][2] > maxflux3)
+			if (Residual[i][j][2] > maxflux3)
 			{
-				maxflux3 = Flux[i][j][2];
+				maxflux3 = Residual[i][j][2];
 			}
-			if (Flux[i][j][3] > maxflux4)
+			if (Residual[i][j][3] > maxflux4)
 			{
-				maxflux4 = Flux[i][j][3];
+				maxflux4 = Residual[i][j][3];
 			}
 		}
 	} //////////
 }
+
+//LTS=LocalTimeStepping,当地时间步法,返回当地时间步
+/*
+double LTS()
+{
+    double dtLocal;
+    double lambdaI, lambdaJ, SI, SJ;
+    double NI[2], NJ[2];
+    NI[0] = 0.5 * (N3[I][J][0] - N1[I][J][0]);
+    NI[1] = 0.5 * (N3[I][J][1] - N1[I][J][1]);
+
+    NJ[0] = 0.5 * (N2[I][J][0] - N4[I][J][0]);
+    NJ[1] = 0.5 * (N2[I][J][1] - N4[I][J][1]);
+
+    SI = 0.5 * (S1[I][J] + S3[I][J]);
+    SJ = 0.5 * (S2[I][J] + S4[I][J]);
+
+    lambdaI = (u[I][J] * NI[0] + v[I][J] * NI[1])+ c;
+    lambdaJ = (u[I][J] * NJ[0] + v[I][J] * NJ[1])+ c;
+
+    dtLocal = CFL * area[I][J] / (lambdaI * SI + lambdaJ * SJ);
+
+    return dtLocal;
+}
+*/
 
 void iteration()
 {
@@ -424,33 +439,33 @@ dtGlobal=100;
 
 	//计算当地时间步
 
-	for (j = 1; j < 70; j++)
+	for (j = 1; j < maxJ; j++)
 	{
-		for (i = 1; i < 330; i++)
+		for (i = 1; i < maxI; i++)
 		{
 			tyj = 0.5 * (dyj[i][j] + dyj[i + 1][j]);
 			txj = 0.5 * (dxj[i][j] + dxj[i + 1][j]);
-			tslj = 0.5 * (slj[i][j] + slj[i + 1][j]);
+			tslj = 0.5 * (S4[i][j] + S4[i + 1][j]);
 			tyi = 0.5 * (dyi[i][j] + dyi[i][j + 1]);
 			txi = 0.5 * (dxi[i][j] + dxi[i][j + 1]);
-			tsli = 0.5 * (sli[i][j] + sli[i][j + 1]);
-			vj = tyj * vx1[i][j] + txj * vy1[i][j];
-			vi = tyi * vx1[i][j] + txi * vy1[i][j];
-			sonic = sqrt(gama * pre1[i][j] / pho1[i][j]);
+			tsli = 0.5 * (S1[i][j] + S1[i][j + 1]);
+			vj = tyj * u[i][j] + txj * v[i][j];
+			vi = tyi * u[i][j] + txi * v[i][j];
+			sonic = sqrt(gama * pre1[i][j] / rho[i][j]);
 			chvel = fabs(vj) + fabs(vi) + sonic * (tslj + tsli);
-			dt = cfl / chvel;
+			dt = CFL / chvel;
 			if(dtGlobal>dt) dtGlobal=dt;
 
-			Q[i][j][0] = Q[i][j][0] - dt * Flux[i][j][0]; //迭代求解下一步Q
-			Q[i][j][1] = Q[i][j][1] - dt * Flux[i][j][1];
-			Q[i][j][2] = Q[i][j][2] - dt * Flux[i][j][2];
-			Q[i][j][3] = Q[i][j][3] - dt * Flux[i][j][3];
+			Q[i][j][0] = Q[i][j][0] - dt * Residual[i][j][0]; //迭代求解下一步Q
+			Q[i][j][1] = Q[i][j][1] - dt * Residual[i][j][1];
+			Q[i][j][2] = Q[i][j][2] - dt * Residual[i][j][2];
+			Q[i][j][3] = Q[i][j][3] - dt * Residual[i][j][3];
 
-    		pho1[i][j] = Q[i][j][0];
-    		vx1[i][j] = Q[i][j][1] / pho1[i][j];
-    		vy1[i][j] = Q[i][j][2] / pho1[i][j];
-    		pre1[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*pho1[i][j] * ( SQ(vx1[i][j]) + SQ(vy1[i][j]) ) );
-    		H[i][j] = (Q[i][j][3] + pre1[i][j]) / pho1[i][j];  
+    		rho[i][j] = Q[i][j][0];
+    		u[i][j] = Q[i][j][1] / rho[i][j];
+    		v[i][j] = Q[i][j][2] / rho[i][j];
+    		pre1[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
+    		H[i][j] = (Q[i][j][3] + pre1[i][j]) / rho[i][j];  
 
 		}
 	} /////////////////
@@ -463,7 +478,7 @@ int main()
 
 	initialize();
 
-	area_caculate();
+	area_calculate();
 
 	fg = fopen("error.txt", "w");
 
@@ -479,30 +494,26 @@ int main()
 
 	fp = fopen("1.txt", "w");
 
-	fprintf(fp, "x                 ,y              pho1[i][j],    vx1[i][j],    vy1[i][j],      pre1[i][j],      T1[i][j],      ma1[i][j]\n");
-
-	for (i = 1; i < 330; i++)
+	fprintf(fp, "x                 ,y              rho[i][j],    u[i][j],    v[i][j],      pre1[i][j],      T[i][j],      Ma[i][j]\n");
+	for (i = 1; i < maxI; i++)
 	{
-		for (j = 1; j < 70; j++)
+		for (j = 1; j < maxJ; j++)
 		{
-			T1[i][j] = pre1[i][j] / R / pho1[i][j];
-			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
-			fprintf(fp, "%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n", nodes[i][j][0], nodes[i][j][1], pho1[i][j], vx1[i][j], vy1[i][j], pre1[i][j], T1[i][j], ma1[i][j]);
+			T[i][j] = pre1[i][j] / R / rho[i][j];
+			Ma[i][j] = sqrt(u[i][j] * u[i][j] + v[i][j] * v[i][j]) / sqrt(gama * R * T[i][j]);
+			fprintf(fp, "%.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f    %.10f\n", nodes[i][j][0], nodes[i][j][1], rho[i][j], u[i][j], v[i][j], pre1[i][j], T[i][j], Ma[i][j]);
 		}
 	}
 
-
-	//record();
-
 	fr = fopen("WYplotflow.dat", "w");
-	fprintf(fr, "Title=\"NOZZLE\"\nVariables=\"x\",\"y\",\"dens\",\"velx\",\"vely\",\"spre\",\"ttem\",\"mach\"\nZone T=\"NOZZLE\" i=331,j=71,f=point \n");
-	for (j = 0; j < 71; j++)
+	fprintf(fr, "Title=\"NOZZLE\"\nVariables=\"x\",\"y\",\"dens\",\"velx\",\"vely\",\"spre\",\"ttem\",\"mach\"\nZone T=\"NOZZLE\" i=%d,j=%d,f=point \n",maxI+1,maxJ+1);
+	for (j = 0; j < maxJ+1; j++)
 	{
-		for (i = 0; i < 331; i++)
+		for (i = 0; i < maxI+1; i++)
 		{
-			T1[i][j] = pre1[i][j] / R / pho1[i][j];
-			ma1[i][j] = sqrt(vx1[i][j] * vx1[i][j] + vy1[i][j] * vy1[i][j]) / sqrt(gama * R * T1[i][j]);
-			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodes[i][j][0], nodes[i][j][1], pho1[i][j], vx1[i][j], vy1[i][j], pre1[i][j], T1[i][j], ma1[i][j]);
+			T[i][j] = pre1[i][j] / R / rho[i][j];
+			Ma[i][j] = sqrt(u[i][j] * u[i][j] + v[i][j] * v[i][j]) / sqrt(gama * R * T[i][j]);
+			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", nodes[i][j][0], nodes[i][j][1], rho[i][j], u[i][j], v[i][j], pre1[i][j], T[i][j], Ma[i][j]);
 		}
 	} //////////////
 

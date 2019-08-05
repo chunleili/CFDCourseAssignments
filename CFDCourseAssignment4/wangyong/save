@@ -1,0 +1,121 @@
+ScalarField dyi, dxi, dyj, dxj;
+ScalarField sli, slj, area;
+ScalarField rho, pre, u, v, T, Ma,H;
+
+
+
+
+
+void splitI()
+{
+			nx=dyj[i][j] / slj[i][j];
+			ny=dxj[i][j] / slj[i][j];
+			SI=slj[i][j];
+			
+			pL = pre1[i - 1][j], pR = pre1[i][j];
+			rhoL = rho[i - 1][j], rhoR = rho[i][j];
+			uL = u[i - 1][j], uR = u[i][j];
+			vL = v[i - 1][j], vR = v[i][j];
+			HL = H[i - 1][j], HR = H[i][j];
+}
+
+void splitJ()
+{
+			nx=dyi[i][j] / sli[i][j];
+			ny=dxi[i][j] / sli[i][j];
+
+			SJ=sli[i][j];
+			
+			pL   = pre1[i][j-1],   pR = pre1[i][j];
+			rhoL = rho[i][j-1], rhoR = rho[i][j];
+			uL   =  u[i][j-1],   uR =  u[i][j];
+			vL   =  v[i][j-1],   vR =  v[i][j];
+			HL   =    H[i][j-1],   HR =    H[i][j];
+}
+
+void roe() //利用roe格式求解
+{
+
+	//计算beta与AQ
+	for (j = 1; j < maxJ+1; j++)
+	{
+		for (i = 1; i < maxI+1; i++)
+		{   
+			splitI();
+
+			c = sqrt(GAMMA*pre1[i][j]/rho[i][j]);
+			double T = pre1[i][j]/(287*rho[i][j]);
+			if (T < 0)
+			{
+				printf("\n****** T<0!! T= %f\n ", T); //exit(2);
+			}
+
+			calARoe();
+
+			for (unsigned k = 0; k <= 3; k++)
+			{
+				AQi[i][j][k] = AARoe[k];
+				Fil[i][j][k] =  FL[k];
+				Fir[i][j][k] =  FR[k];
+			}
+
+
+
+ 
+			calARoe();
+
+			for (unsigned k = 0; k <= 3; k++)
+			{
+				AQj[i][j][k] = AARoe[k];
+				Fjl[i][j][k] =  FL[k];
+				Fjr[i][j][k] =  FR[k];
+			}
+
+		}
+	}
+
+
+
+	maxflux = 0;
+	maxflux2 = 0;
+	maxflux3 = 0;
+	maxflux4 = 0;
+
+
+	double FcI[4], FcJ[4], FcIright[4],FcJup[4];
+	
+	for (j = 1; j < maxJ; j++)
+	{
+		for (i = 1; i < maxI; i++)
+		{
+			for (unsigned k = 0; k < 4; k++)
+            {
+                //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
+                //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
+				FcI[k]     =SI*(Fil[i][j][k] + Fir[i][j][k] - AQi[i][j][k]) / 2;
+				FcIright[k]=SI*(Fil[i + 1][j][k] + Fir[i + 1][j][k] - AQi[i + 1][j][k]) / 2;
+				FcJ[k]     =SJ*(Fjl[i][j][k] + Fjr[i][j][k] - AQj[i][j][k]) / 2;
+				FcJup[k]   =SJ*(Fjl[i][j + 1][k] + Fjr[i][j + 1][k] - AQj[i][j + 1][k]) / 2;
+
+                Flux[i][j][k] = -FcI[k]  + FcIright[k]  - FcJ[k]  + FcJup[k] ;
+            }
+
+			if (Flux[i][j][0] > maxflux)
+			{
+				maxflux = Flux[i][j][0];
+			}
+			if (Flux[i][j][1] > maxflux2)
+			{
+				maxflux2 = Flux[i][j][1];
+			}
+			if (Flux[i][j][2] > maxflux3)
+			{
+				maxflux3 = Flux[i][j][2];
+			}
+			if (Flux[i][j][3] > maxflux4)
+			{
+				maxflux4 = Flux[i][j][3];
+			}
+		}
+	} //////////
+}

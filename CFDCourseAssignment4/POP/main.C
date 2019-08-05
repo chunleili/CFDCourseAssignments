@@ -64,7 +64,7 @@ void cellGeometry();
 
 Field FcI, FcJ;//右侧和上侧的对流通量的大小, 向外为正, 方向由N1~N4给定
 Field Q;//Q用于存储守恒变量
-Field R; //R for Residual, 残差
+Field Residual; //单元格内的残差
 //double QQ[maxI+3][maxJ+3][5];//QQ用于存储原始变量rho u v p H
 
 void init1();
@@ -188,10 +188,7 @@ void cellGeometry()
             
             //计算单元体体积, 厚度取为1
             volume[i][j] = 0.5 * ((x1 - x3) * (y2 - y4) + (x4 - x2) * (y1 - y3));
-            
         }    
-
-        //虚网格也需要计算几何参数,直接赋予相邻网格的参数即可
 }
 
 /**********************LTS********************************/
@@ -374,9 +371,9 @@ void solve()
                 //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
                 //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
 
-                R[I][J][k] = FcI[I][J][k] * S2[I][J] - FcI[I-1][J][k] * S4[I][J] + FcJ[I][J][k] * S3[I][J] - FcJ[I][J-1][k] * S1[I][J];
+                Residual[I][J][k] = FcI[I][J][k] * S2[I][J] - FcI[I-1][J][k] * S4[I][J] + FcJ[I][J][k] * S3[I][J] - FcJ[I][J-1][k] * S1[I][J];
 
-                Q[I][J][k] = Q[I][J][k] - dt / volume[I][J] * R[I][J][k];
+                Q[I][J][k] = Q[I][J][k] - dt / volume[I][J] * Residual[I][J][k];
             }
             aeroConvert(I,J);
 
@@ -398,10 +395,10 @@ void solve()
             if(rho[I][J]<0) exit(2);
 
             //记录残差
-            rRho = fabs(R[I][J][0]);
-            rU = fabs(R[I][J][1]);
-            rV = fabs(R[I][J][2]);
-            rE = fabs(R[I][J][3]);
+            rRho = fabs(Residual[I][J][0]);
+            rU = fabs(Residual[I][J][1]);
+            rV = fabs(Residual[I][J][2]);
+            rE = fabs(Residual[I][J][3]);
 
             if (residualRho < rRho)
                 residualRho = rRho;
