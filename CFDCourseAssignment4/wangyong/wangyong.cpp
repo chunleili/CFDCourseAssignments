@@ -9,14 +9,14 @@ const unsigned maxI=250, maxJ=50;
 const int cellBegin=1, cellIEnd=maxI, cellJEnd=maxJ;
 const int block1=(int)(maxI*0.2+0.1), block2=(int)(maxI*0.2+0.1);
 
-typedef double Field[maxI+1][maxJ+1][4];
+typedef double Field[maxI+3][maxJ+3][4];
 typedef double ScalarField[maxI+1][maxJ+1];
 typedef double Vector[4];
 typedef struct XY
 {
 	double x,y;
 }XY;
-typedef XY MeshPoint[maxI+1][maxJ+1];
+typedef XY MeshPoint[maxI+3][maxJ+3];
 
 MeshPoint mesh;
 int i, j, k;
