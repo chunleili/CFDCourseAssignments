@@ -119,3 +119,163 @@ void roe() //利用roe格式求解
 		}
 	} //////////
 }
+
+
+
+/*
+void boundary_conditions()
+{
+	for (j = 1; j < maxJ; j++) //进口边界条件 分区1 亚音进口，一个变量外推
+	{
+
+		total_pre1[0][j] = 250000;
+		total_T1[0][j] = maxI;
+		v[0][j] = 0;
+
+		T[0][j] = T[1][j];
+		//静温外推
+		Ma[0][j] = sqrt((total_T1[0][j] / T[0][j] - 1) * 2 / (gama - 1)); //壁面速度为0
+		pre1[0][j] = total_pre1[0][j] * pai(Ma[0][j]);
+		rho[0][j] = pre1[0][j] / R / T[0][j];
+		u[0][j] = Ma[0][j] * sqrt(gama * R * T[0][j]);
+		
+	}
+
+	for (j = 1; j < maxJ; j++)
+	{
+		if (Ma[maxI-1][j] >= 1) //超音全部外推
+		{
+			u[maxI][j] = u[maxI-1][j];
+			v[maxI][j] = v[maxI-1][j];
+			pre1[maxI][j] = pre1[maxI-1][j];
+			T[maxI][j] = T[maxI-1][j];
+			rho[maxI][j] = pre1[maxI][j] / R / T[maxI][j];
+			Ma[maxI][j] = sqrt(u[maxI][j] * u[maxI][j] + v[maxI][j] * v[maxI][j]) / sqrt(gama * R * T[maxI][j]);
+		}
+		else //亚音3个外推   静压给定
+		{
+			pre1[maxI][j] = 85419;
+			u[maxI][j] = u[maxI-1][j];
+			v[maxI][j] = v[maxI-1][j];
+			T[maxI][j] = T[maxI-1][j];
+			rho[maxI][j] = pre1[maxI][j] / R / T[maxI][j];
+			Ma[maxI][j] = sqrt(u[maxI][j] * u[maxI][j] + v[maxI][j] * v[maxI][j]) / sqrt(gama * R * T[maxI][j]);
+		}
+	}
+
+	for (i = 1; i < 151; i++) //喷管壁面边界条件
+	{
+
+		double nx=dyi[i][maxJ] / S1[i][maxJ];
+		double ny=dxi[i][maxJ] / S1[i][maxJ];
+
+		Fc1[i][maxJ][0]=0;
+		Fc1[i][maxJ][1]=pre1[i][maxJ]*nx;
+		Fc1[i][maxJ][2]=pre1[i][maxJ]*ny;
+		Fc1[i][maxJ][3]=0;			
+	}
+
+	for (i = 1; i < maxI; i++) //对称边界条件
+	{
+		rho[i][0] = rho[i][1];
+		u[i][0] = u[i][1];
+		v[i][0] = 0;
+		pre1[i][0] = pre1[i][1];
+		T[i][0] = pre1[i][0] / rho[i][0] / R;
+		Ma[i][0] = sqrt(u[i][0] * u[i][0] + v[i][0] * v[i][0]) / sqrt(gama * R * T[i][0]);
+	}
+
+	////////////////////////////
+
+	for (i = 1; i < 81; i++) //下壁面条件
+	{
+
+		double nx=dyi[i][0] / S1[i][0];
+		double ny=dxi[i][0] / S1[i][0];
+
+		Fc1[i][0][0]=0;
+		Fc1[i][0][1]=pre1[i][0]*nx;
+		Fc1[i][0][2]=pre1[i][0]*ny;
+		Fc1[i][0][3]=0;	
+
+	}
+}*/
+double pai(double Ma)
+{
+	double paima;
+	paima = pow(1 / (1 + (gama - 1) * Ma * Ma / 2), gama / (gama - 1));
+	return paima;
+}
+/*
+void mesh_generation()
+{
+
+	for (j = 0; j < maxJ+1; j++)
+	{
+		for (i = 0; i < 11; i++)
+		{
+			nodes[i][j][0] = 0.02 * i - 1.2;
+			nodes[i][j][1] = 0.01 * j;
+		}
+		for (i = 11; i < 61; i++)
+		{
+			nodes[i][j][0] = (log((i - 10) * (pow(e, a) - 1) / 50 + 1)) / a - 1;
+			nodes[i][j][1] = (0.0179015 * pow(nodes[i][j][0], 6) - 0.1761616 * pow(nodes[i][j][0], 5) - 0.5135756 * pow(nodes[i][j][0], 4) - 0.02836162 * pow(nodes[i][j][0], 3) + 0.4913228 * pow(nodes[i][j][0], 2) + 0.000153865 * nodes[i][j][0] + 0.5000094) / 70 * j;
+		}
+		for (i = 61; i < 71; i++)
+		{
+			nodes[131 - i][j][0] = 0.08983227479893685 - 0.08983227479893685 * (log((i - 61) * (pow(e, a) - 1) / 10 + 1)) / a;
+		}
+		for (i = 61; i < 71; i++)
+		{
+			nodes[i][j][1] = (0.0179015 * pow(nodes[i][j][0], 6) - 0.1761616 * pow(nodes[i][j][0], 5) - 0.5135756 * pow(nodes[i][j][0], 4) - 0.02836162 * pow(nodes[i][j][0], 3) + 0.4913228 * pow(nodes[i][j][0], 2) + 0.000153865 * nodes[i][j][0] + 0.5000094) / 70 * j;
+		}
+		for (i = 71; i < 151; i++)
+		{
+			nodes[i][j][0] = (1 - 0.08983227479893685) * (log((i - 70) * (pow(e, a) - 1) / 80 + 1)) / a + 0.08983227479893685;
+			nodes[i][j][1] = (0.08748864 * nodes[i][j][0] + 0.4960966) / 70 * j;
+		}
+		for (i = 151; i < 231; i++)
+		{
+			nodes[381 - i][j][0] = 2 - (log((i - 151) * (pow(e, a) - 1) / 80 + 1)) / a;
+			nodes[i][j][1] = 0.583585301908299 / 70 * j;
+		}
+		for (i = 231; i < maxI+1; i++)
+		{
+			nodes[i][j][0] = 0.04 * (i - 230) + 2;
+			nodes[i][j][1] = 0.583585301908299 / 70 * j;
+		}
+	}
+
+}*/
+
+
+
+void initialize()
+{
+/*
+	for (j = 0; j < maxJ+1; j++)
+	{
+		for (i = 0; i < maxI+1; i++)
+		{
+			u[i][j] = 400; //3
+			v[i][j] = 0;
+			pre1[i][j] = 101325;
+			T[i][j] = 230;
+			rho[i][j] = pre1[i][j] / T[i][j] / R;
+			Ma[i][j] = sqrt(u[i][j] * u[i][j] + v[i][j] * v[i][j]) / sqrt(gama * R * T[i][j]);
+			H[i][j] = (pre1[i][j] / (gama - 1) + 0.5 * rho[i][j] * (pow(v[i][j], 2) + pow(u[i][j], 2)) +
+			pre1[i][j]) / rho[i][j];
+		}
+	}
+	for (j = 1; j < maxJ; j++)
+	{
+		for (i = 1; i < maxI; i++)
+		{
+			Q[i][j][0] = rho[i][j];
+			Q[i][j][1] = rho[i][j] * u[i][j];
+			Q[i][j][2] = rho[i][j] * v[i][j];
+			Q[i][j][3] = pre1[i][j] / (gama - 1) + 0.5 * rho[i][j] * (u[i][j] * u[i][j] + v[i][j] * v[i][j]);
+		}
+	}
+	*/

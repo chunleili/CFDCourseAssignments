@@ -232,6 +232,7 @@ void init1()
     //速度u=624.9397, v=0, 密度rho=p/RT=1.176829
     //单位体积总能E=p/(GAMMA-1)+0.5*rho*(u^2+v^2)
     for(unsigned i=cellBegin-1; i<=cellIEnd+2; i++)//包括虚网格!
+    {
         for(unsigned j=cellBegin-1; j<=cellJEnd+2; j++)
         {
             p[i][j]=101325;
@@ -245,6 +246,7 @@ void init1()
             Q[i][j][2] = 0;
             Q[i][j][3] = 483117.6; // 101325/0.4+0.5*1.176829*625*625;
         }
+    }
 }
 
 
