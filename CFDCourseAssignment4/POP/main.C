@@ -243,14 +243,12 @@ void BC()
 	//左边, 最左层实际网格的通量给定,
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
-//这些流动变量值是虚网格,仅仅用于插值的模板
-/*
-        pre[0][j] = p0;
-        u[0][j] = u0;
-        v[0][j] = v0;
-      rho[0][j] = rho0;
-        H[0][j] = H0; 
-*/
+      pre[1][j] = p0;
+        u[1][j] = u0;
+        v[1][j] = v0;
+      rho[1][j] = rho0;
+        H[1][j] = H0; 
+
         const double nx=1, ny=0;
         Fcleft[1][j][0]=rho0*Vcv0;
         Fcleft[1][j][1]=rho0*u0*Vcv0+p0*nx;
@@ -560,11 +558,11 @@ int main()
 
     for (step=1;  step<=2000; step++)
     {   
-        BC();
-        ghostCell();
         roeFlux();
         sumFlux();
         iteration();
+        BC();
+        ghostCell();
 
         fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e \n",
          step, maxR[0], maxR[1], maxR[2], maxR[3]);
