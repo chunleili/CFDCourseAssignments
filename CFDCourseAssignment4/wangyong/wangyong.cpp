@@ -27,16 +27,19 @@ ScalarField rho, p, u, v, T, Ma,H;
 
 Field  Residual, Q;
 double vi, vj, chvel, dt;
-double  residualRho, residualU, residualV, residualE;
+Vector  maxR;
 const double GAMMA = 1.4;
 double dtGlobal=100;
 
 Field Fc1,Fc2,Fc3,Fc4;
 
 void genMesh();
-void init();
+void init1();
 void cellGeometry();
 void BC();
+double LTS();
+void roeFlux();
+void iteration();
 
 const double p0=101325;
 const double u0=624.9397;
@@ -47,6 +50,7 @@ const double H0=496662.5;
 const double E0=483117.6;
 double nx,ny;
 double c;
+double nodes[331][71][2],nodesc1[331][71][2];
 
 
 void genMesh()//生成网格点,注意点要比单元格数量分别多一层
@@ -86,7 +90,6 @@ void genMesh()//生成网格点,注意点要比单元格数量分别多一层
 
 void init1()
 {
-
     //初始全部给1.8Ma, 攻角为0, 压力给大气压101325, 静温300K, 其余推出如下:
     //声速c=sqrt(1.4*287*300)=347.1887
     //速度u=624.9397, v=0, 密度rho=p/RT=1.176829
@@ -169,6 +172,7 @@ void cellGeometry()
 void BC()
 {
     double pw;
+	//上边
     const unsigned j=cellJEnd;
     for(unsigned i=cellBegin; i<=cellIEnd; i++)
     {
@@ -176,22 +180,23 @@ void BC()
         pw=p[i][j];
         nx=N3[i][j].x; ny=N3[i][j].y;
 
-        Fc1[i][j][0]=0;       
-        Fc1[i][j][1]=0;
-        Fc1[i][j][2]=pw;
-        Fc1[i][j][3]=0;
+        Fc4[i][j][0]=0;       
+        Fc4[i][j][1]=0;
+        Fc4[i][j][2]=pw;
+        Fc4[i][j][3]=0;
 	}
+	//下边
     //const unsigned j= cellBegin;
     for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
-        nx=N3[i][1].x; ny=N3[i][1].y;
+        nx=N1[i][1].x; ny=N1[i][1].y;
         //pw = 0.5 * (3 * p[i][j] - p[i][j+1]); //壁面的压力用两点外推
         pw=p[i][1];
         
-        Fc1[i][0][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
-        Fc1[i][0][1] = pw*nx;
-        Fc1[i][0][2] = pw*ny;
-        Fc1[i][0][3] = 0;
+        Fc4[i][0][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
+        Fc4[i][0][1] = pw*nx;
+        Fc4[i][0][2] = pw*ny;
+        Fc4[i][0][3] = 0;
 
         //extrapolation(i,0,i,1);
       rho[i][0] = rho[i][1];
@@ -200,7 +205,7 @@ void BC()
         p[i][0] =   p[i][1];
         H[i][0] =   H[i][1];
     }
-
+	//左边(右边不用管,全部推出)
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
         p[0][j] = 101325;
@@ -211,11 +216,10 @@ void BC()
 
         const double nx=1, ny=0;
         const double Vcv0=624.9397;
-        Fc4[0][j][0]=rho0*Vcv0;
-        Fc4[0][j][1]=rho0*u0*Vcv0+p0*nx;
-        Fc4[0][j][2]=rho0*v0*Vcv0+p0*ny;
-        Fc4[0][j][3]=rho0*H0*Vcv0;
-  
+        Fc1[0][j][0]=rho0*Vcv0;
+        Fc1[0][j][1]=rho0*u0*Vcv0+p0*nx;
+        Fc1[0][j][2]=rho0*v0*Vcv0+p0*ny;
+        Fc1[0][j][3]=rho0*H0*Vcv0;
     }
 }
 double rhoR,rhoL,uR,uL,vR,vL,pR,pL,HR,HL;
@@ -303,96 +307,105 @@ void calARoe()
 	FL[3] = rhoL * VcvL * HL;
 }
 
-void solve() //利用roe格式求解
+void splitI()
 {
-	residualRho = 0;
-	residualU = 0;
-	residualV = 0;
-	residualE = 0;
-	
-	//计算beta与AQ
-	for (j = 1; j < maxJ+1; j++)
-	{
-		for (i = 1; i < maxI+1; i++)
+	nx = -N4[i][j].x;
+	ny = -N4[i][j].y;
+
+	pL = p[i - 1][j], pR = p[i][j];
+	rhoL = rho[i - 1][j], rhoR = rho[i][j];
+	uL = u[i - 1][j], uR = u[i][j];
+	vL = v[i - 1][j], vR = v[i][j];
+	HL = H[i - 1][j], HR = H[i][j];
+}
+
+void splitJ()
+{
+	nx = -N1[i][j].x;
+	ny = -N1[i][j].y;
+
+	pL = p[i][j - 1], pR = p[i][j];
+	rhoL = rho[i][j - 1], rhoR = rho[i][j];
+	uL = u[i][j - 1], uR = u[i][j];
+	vL = v[i][j - 1], vR = v[i][j];
+	HL = H[i][j - 1], HR = H[i][j];
+}
+
+void roeFlux() //利用roe格式求解
+{
+
+    for( i=1;i<=maxI;i++)   
+        for( j=1;j<=maxJ;j++)
 		{   
 			c = sqrt(GAMMA*p[i][j]/rho[i][j]);
-			double T = p[i][j]/(287*rho[i][j]);
-			if (T < 0)
-			{
-				printf("\n****** T<0!! T= %f\n ", T); //exit(2);
-			}
-
-
-			nx=-N4[i][j].x; 
-			ny=-N4[i][j].y;
-			
-			pL = p[i - 1][j], pR = p[i][j];
-			rhoL = rho[i - 1][j], rhoR = rho[i][j];
-			uL = u[i - 1][j], uR = u[i][j];
-			vL = v[i - 1][j], vR = v[i][j];
-			HL = H[i - 1][j], HR = H[i][j];
-
+            nx = -N4[i][j].x, ny = -N4[i][j].y;
+            splitI();
 			calARoe();
-
-
 			for (unsigned k = 0; k <= 3; k++)
-			{
 				Fc4[i][j][k] = S4[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-			}
-
-			//nx=dyi[i][j] / S1[i][j];
-			//ny=dxi[i][j] / S1[i][j];
-			nx=-N1[i][j].x;
-			ny=-N1[i][j].y;
-
-			pL   = p[i][j-1],   pR = p[i][j];
-			rhoL = rho[i][j-1],  rhoR = rho[i][j];
-			uL   =  u[i][j-1],     uR =  u[i][j];
-			vL   =  v[i][j-1],     vR =  v[i][j];
-			HL   =    H[i][j-1],   HR =    H[i][j];
- 
+            nx = -N1[i][j].x, ny = -N1[i][j].y;
+            splitJ();
 			calARoe();
-
 			for (unsigned k = 0; k <= 3; k++)
-			{
-				Fc1[i][j][k] = S1[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-			}
-
+				Fc1[i][j][k] = S1[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;	
 		}
-	}
+	
+	for (unsigned k = 0; k <= 3; k++)
+        maxR[k] = 0;
+    for ( i = 1; i <= maxI - 1; i++)    
+        for ( j = 1; j <= maxJ - 1; j++)
+            for ( k = 0; k < 4; k++)
+            {
+                Fc2[i][j][k] = Fc4[i + 1][j][k];
+                Fc3[i][j][k] = Fc1[i][j + 1][k];
+                Residual[i][j][k] = -Fc1[i][j][k] + Fc2[i][j][k] - Fc4[i][j][k] + Fc3[i][j][k];
+                if (Residual[i][j][k] > maxR[k])
+                    maxR[k] = Residual[i][j][0];
+            }
+}
 
+
+void iteration()
+{
+dtGlobal=100;
+
+	//计算当地时间步
 
 	for (j = 1; j < maxJ; j++)
 	{
 		for (i = 1; i < maxI; i++)
 		{
-			for (unsigned k = 0; k < 4; k++)
-            {
-				Fc2[i][j][k]  =Fc4[i+1][j][k];
-				Fc3[i][j][k]  =Fc1[i][j+1][k];
+			double T = p[i][j]/(287*rho[i][j]);
+			if (T < 0)
+			{
+				printf("\n****** T<0!! T= %f\n ", T); //exit(2);
+			}
+			c = sqrt(GAMMA * p[i][j] / rho[i][j]);
+			vj = -N4[i][j].x*S4[i][j] * u[i][j]  -N4[i][j].y*S4[i][j] * v[i][j];
+			vi = -N1[i][j].x*S1[i][j] * u[i][j]  -N1[i][j].y*S1[i][j] * v[i][j]; 
+			chvel = fabs(vj) + fabs(vi) + c * (S4[i][j] + S1[i][j]);
+			dt = CFL / chvel;
 
-                Residual[i][j][k] = -Fc1[i][j][k]  + Fc2[i][j][k]  - Fc4[i][j][k]  + Fc3[i][j][k] ;
-            }
+			dt=LTS();
+			if(dtGlobal>dt) dtGlobal=dt;
 
-			if (Residual[i][j][0] > residualRho)
-			{
-				residualRho = Residual[i][j][0];
-			}
-			if (Residual[i][j][1] > residualU)
-			{
-				residualU = Residual[i][j][1];
-			}
-			if (Residual[i][j][2] > residualV)
-			{
-				residualV = Residual[i][j][2];
-			}
-			if (Residual[i][j][3] > residualE)
-			{
-				residualE = Residual[i][j][3];
-			}
+			Q[i][j][0] = Q[i][j][0] - dt * Residual[i][j][0]; //迭代求解下一步Q
+			Q[i][j][1] = Q[i][j][1] - dt * Residual[i][j][1];
+			Q[i][j][2] = Q[i][j][2] - dt * Residual[i][j][2];
+			Q[i][j][3] = Q[i][j][3] - dt * Residual[i][j][3];
+
+    		rho[i][j] = Q[i][j][0];
+    		u[i][j] = Q[i][j][1] / rho[i][j];
+    		v[i][j] = Q[i][j][2] / rho[i][j];
+    		p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
+    		H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];  
+
 		}
-	} //////////
+	} /////////////////
 }
+
+
+
 
 //LTS=LocalTimeStepping,当地时间步法,返回当地时间步
 
@@ -419,77 +432,38 @@ double LTS()
 }
 
 
-void iteration()
-{
-dtGlobal=100;
-
-	//计算当地时间步
-
-	for (j = 1; j < maxJ; j++)
-	{
-		for (i = 1; i < maxI; i++)
-		{
-
-			vj = -N4[i][j].x*S4[i][j] * u[i][j]  -N4[i][j].y*S4[i][j] * v[i][j];
-			vi = -N1[i][j].x*S1[i][j] * u[i][j]  -N1[i][j].y*S1[i][j] * v[i][j]; 
-			c = sqrt(GAMMA * p[i][j] / rho[i][j]);
-			chvel = fabs(vj) + fabs(vi) + c * (S4[i][j] + S1[i][j]);
-
-			//dt=LTS();
-
-			dt = CFL / chvel;
-			if(dtGlobal>dt) dtGlobal=dt;
-
-			Q[i][j][0] = Q[i][j][0] - dt * Residual[i][j][0]; //迭代求解下一步Q
-			Q[i][j][1] = Q[i][j][1] - dt * Residual[i][j][1];
-			Q[i][j][2] = Q[i][j][2] - dt * Residual[i][j][2];
-			Q[i][j][3] = Q[i][j][3] - dt * Residual[i][j][3];
-
-    		rho[i][j] = Q[i][j][0];
-    		u[i][j] = Q[i][j][1] / rho[i][j];
-    		v[i][j] = Q[i][j][2] / rho[i][j];
-    		p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
-    		H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];  
-
-		}
-	} /////////////////
-}
-
-
 int main()
 {
 	FILE *fr, *fg;
 
 	genMesh();
 
-	init();
+	init1();
 
 	cellGeometry();
 
 	fg = fopen("error.txt", "w");
 
-	for (k = 0; k < 2000; k++)
+	for (unsigned step = 0; step < 2000; step++)
 	{
-
-		printf("%d    %.15f    %.15f    %.15f    %.15f      %.5e\n", k, residualRho, residualU, residualV, residualE,  dtGlobal);
-		fprintf(fg, "%d    %.15f    %.15f    %.15f    %.15f\n", k, residualRho, residualU, residualV, residualE);
+		printf("%d    %.15f    %.15f    %.15f    %.15f      %.5e\n", step, maxR[0],maxR[1],maxR[2],maxR[3],dtGlobal);
+		fprintf(fg, "%d    %.15f    %.15f    %.15f    %.15f\n", step, maxR[0],maxR[1],maxR[2],maxR[3] );
 		BC();
-		solve();
+		roeFlux();
 		iteration();
 	}
 
 
 	fr = fopen("WYplotflow.dat", "w");
-	fprintf(fr, "Title=\"CFD4\"\nVariables=\"x\",\"y\",\"rho\",\"velx\",\"vely\",\"pressure\",\"T\",\"Ma\"\nZone T=\"Zone1\" i=%d,j=%d,f=point \n",maxI+1,maxJ+1);
-	for (j = 0; j < maxJ+1; j++)
+	fprintf(fr, "Title=\"CFD4\"\nVariables=\"x\",\"y\",\"rho\",\"velx\",\"vely\",\"pressure\",\"T\",\"Ma\"\nZone T=\"Zone1\" i=%d,j=%d,f=point \n",maxI,maxJ);
+	for (j = 1; j <= maxJ; j++)
 	{
-		for (i = 0; i < maxI+1; i++)
+		for (i = 1; i <= maxI; i++)
 		{
 			T[i][j] = p[i][j] / Rg / rho[i][j];
 			Ma[i][j] = sqrt(u[i][j] * u[i][j] + v[i][j] * v[i][j]) / sqrt(GAMMA * Rg * T[i][j]);
 			fprintf(fr, "%.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f  %.5f\n", mesh[i][j].x, mesh[i][j].y, rho[i][j], u[i][j], v[i][j], p[i][j], T[i][j], Ma[i][j]);
 		}
-	} //////////////
+	} 
 
-	
 }
