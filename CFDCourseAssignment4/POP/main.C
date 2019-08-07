@@ -221,51 +221,58 @@ void init1()
 void BC()
 {
     double pw;
-	//上边
+	//上边, 赋予给最上层虚网格的下通量
     const unsigned j=cellJEnd;
     for(unsigned i=cellBegin; i<=cellIEnd; i++)
     {
         //pw=0.5*(3*pre[i][j]-pre[i][j-1]);//壁面的压力用两点外推
-        Fcup[i][j][0]=0;       
-        Fcup[i][j][1]=pre[i][j]*Nup[i][j].x;
-        Fcup[i][j][2]=pre[i][j]*Nup[i][j].y;
-        Fcup[i][j][3]=0;
-        extrapolation(i,j+1,i,j);
+        Fcdown[i][j+1][0]=0;       
+        Fcdown[i][j+1][1]=pre[i][j]*Nup[i][j].x;
+        Fcdown[i][j+1][2]=pre[i][j]*Nup[i][j].y;
+        Fcdown[i][j+1][3]=0;
 	}
-	//下边
+	//下边, 给最下层实际网格的下边, 向下外推一层用于插值模板
     for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
-        //pw = 0.5 * (3 * pre[i][j] - pre[i][j+1]); //壁面的压力用两点外推
+        //pw = 0.5 * (3 * pre[i][j] - pre[i][j+1]); //
         Fcdown[i][1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
         Fcdown[i][1][1] = pre[i][1]*Ndown[i][1].x;
         Fcdown[i][1][2] = pre[i][1]*Ndown[i][1].y;
         Fcdown[i][1][3] = 0;
-
-        extrapolation(i,0,i,1);
     }
-	//左边
+	//左边, 最左层实际网格的通量给定,
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
-        //这些流动变量值是虚网格,仅仅用于插值的模板
+//这些流动变量值是虚网格,仅仅用于插值的模板
+/*
         pre[0][j] = p0;
         u[0][j] = u0;
         v[0][j] = v0;
       rho[0][j] = rho0;
         H[0][j] = H0; 
-
-        //Fcleft[1][j]才是真正的边界
+*/
         const double nx=1, ny=0;
         Fcleft[1][j][0]=rho0*Vcv0;
         Fcleft[1][j][1]=rho0*u0*Vcv0+p0*nx;
         Fcleft[1][j][2]=rho0*v0*Vcv0+p0*ny;
         Fcleft[1][j][3]=rho0*H0*Vcv0;
-    }
-    //右边//虚网格给予流动变量,然后根据roe格式算出虚网格的Fc4[maxI+1][j],从而赋予需要的Fc2[maxI][j]
+    }   
+}
+
+void ghostCell()
+{
+    //左侧
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
-    {
+        extrapolation(0,j,1,j);
+    //右侧
+    for(unsigned j=cellBegin; j<=cellJEnd; j++)
         extrapolation(maxI+1,j,maxI,j);
-    }
-      
+    //上侧
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+        extrapolation(i,maxJ+1,i,maxJ);
+    //下侧
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+        extrapolation(i,0,i,1);
 }
 
 /**********************iteration********************************/
@@ -409,8 +416,8 @@ void roeFlux()
     for (unsigned k = 0; k <= 3; k++)
         maxR[k] = 0;
 
-//xin
-    for( i=1;i<=maxI+1;i++)   //注意范围
+    //左侧通量
+    for( i=2;i<=maxI+1;i++)   //注意范围
         for( j=1;j<=maxJ;j++)
 		{   
 			sound = sqrt(GAMMA*pre[i][j]/rho[i][j]);
@@ -419,126 +426,42 @@ void roeFlux()
 			calARoe();
 			for (unsigned k = 0; k <= 3; k++)
 				Fcleft[i][j][k] = Sleft[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
+        }
+    //下侧通量
+    for( i=1;i<=maxI;i++)   //注意范围
+        for( j=2;j<=maxJ;j++)
+        {
             nx = -Ndown[i][j].x, ny = -Ndown[i][j].y;
             splitJ();
 			calARoe();
 			for (unsigned k = 0; k <= 3; k++)
 				Fcdown[i][j][k] = Sdown[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;	
 		}
-/*
+    //上侧通量
     for ( i = 1; i <= maxI ; i++)    //注意范围
-        for ( j = 1; j <= maxJ-1 ; j++)
-            for(unsigned k=0; k<=3; k++)
-                Fcup[i][j][k]=Fcdown[i][j+1][k];
-    
-    for ( i = 1; i <= maxI ; i++)    //注意范围
-        for ( j = 1; j <= maxJ-1 ; j++)
-            for(unsigned k=0; k<=3; k++)
-                Fcright[i][j][k]=Fcleft[i][j][k];
-*/
-    for ( i = 1; i <= maxI-1 ; i++)    //注意范围
         for ( j = 1; j <= maxJ-1 ; j++)
             for ( unsigned k = 0; k < 4; k++)
-            {   
                 Fcup[i][j][k]   =Fcdown[i][j+1][k];
-                Fcright[i][j][k]=Fcleft[i+1][j][k];
-                Residual[i][j][k] = Fcup[i][j][k] - Fcdown[i][j][k] + Fcright[i + 1][j][k] - Fcleft[i][j][k] ;
-                if (Residual[i][j][k] > maxR[k])
-                    maxR[k] = Residual[i][j][0];
-            }
-
-
-/*
-//左侧
-    for( i=1;i<=maxI;i++)   
-        for( j=1;j<=maxJ;j++)
-		{   
-            if(i==1)
-            {
-                extrapolation(i-1,j,i,j);
-            }
-			sound = sqrt(GAMMA*pre[i][j]/rho[i][j]);
-            nx = -Nleft[i][j].x, ny = -Nleft[i][j].y;
-            splitI();
-			calARoe();
-			for (unsigned k = 0; k <= 3; k++)
-				Fcleft[i][j][k] = Sleft[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-            if(i==1)
-            {
-                const double nx = 1, ny = 0;
-                Fcleft[1][j][0] = rho0 * Vcv0;
-                Fcleft[1][j][1] = rho0 * u0 * Vcv0 + p0 * nx;
-                Fcleft[1][j][2] = rho0 * v0 * Vcv0 + p0 * ny;
-                Fcleft[1][j][3] = rho0 * H0 * Vcv0;
-            }
-
-        }
-//下侧
-    for ( i = 1; i <= maxI ; i++)    
+    //右侧通量
+    for ( i = 1; i <= maxI ; i++)    //注意范围
         for ( j = 1; j <= maxJ ; j++)
-        {
-            if(j==1)
-            {
-                extrapolation(i,j-1,i,j);
-            }
-            nx = -Ndown[i][j].x, ny = -Ndown[i][j].y;
-            splitJ();
-			calARoe();
-			for (unsigned k = 0; k <= 3; k++)
-				Fcdown[i][j][k] = Sdown[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-            if(j==1)
-            {
-                Fcdown[i][j][0] = 0;
-                Fcdown[i][j][1] = pre[i][j] * nx;
-                Fcdown[i][j][2] = pre[i][j] * ny;
-                Fcdown[i][j][3] = 0;
-            }	
-            
-		}
-//右侧
-    for( i=1;i<=maxI;i++)   
-        for( j=1;j<=maxJ+1;j++)//虚网格
-		{   
-            if(i==maxI+1)
-            {
-                extrapolation(i,j,i-1,j);
-            }
-			sound = sqrt(GAMMA*pre[i][j]/rho[i][j]);
-            nx = Nright[i][j].x, ny = Nright[i][j].y;
-            splitI();
-			calARoe();
-			for (unsigned k = 0; k <= 3; k++)
-				Fcright[i][j][k] = Sright[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-        }
-    
-//上侧
-    for ( i = 1; i <= maxI ; i++)    
-        for ( j = 1; j <= maxJ ; j++)
-        {
-            nx = Nup[i][j].x, ny = Nup[i][j].y;
-            splitJ();
-			calARoe();
-			for (unsigned k = 0; k <= 3; k++)
-				Fcup[i][j][k] = Sdown[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-            if(j==maxJ)
-            {
-                Fcup[i][j][0] = 0;
-                Fcup[i][j][1] = pre[i][j] * nx;
-                Fcup[i][j][2] = pre[i][j] * ny;
-                Fcup[i][j][3] = 0;
-            }	
-		}
+            for ( unsigned k = 0; k < 4; k++)
+                Fcright[i][j][k] =Fcleft[i+1][j][k];
+}
 
-//通量和
+
+
+//通量和, 即残差
+void sumFlux()
+{
     for ( i = 1; i <= maxI ; i++)    //注意范围
         for ( j = 1; j <= maxJ ; j++)
             for ( unsigned k = 0; k < 4; k++)
             {   
-                Residual[i][j][k] = -Fcdown[i][j][k] + Fcup[i][j][k] + Fcright[i][j][k] - Fcleft[i][j][k] ;
+                Residual[i][j][k] = Fcup[i][j][k] - Fcdown[i][j][k] + Fcright[i][j][k] - Fcleft[i][j][k] ;
                 if (Residual[i][j][k] > maxR[k])
                     maxR[k] = Residual[i][j][0];
             }
-*/
 }
   
  
@@ -638,7 +561,9 @@ int main()
     for (step=1;  step<=2000; step++)
     {   
         BC();
+        ghostCell();
         roeFlux();
+        sumFlux();
         iteration();
 
         fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e \n",
