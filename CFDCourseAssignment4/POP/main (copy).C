@@ -32,6 +32,7 @@ const double T0=300;
 const double rho0=1.176829268;
 const double H0=496662.5;
 const double E0=483117.6;
+const double Vcv0=u0;
 /***************************define the type ********************************/
 typedef struct XY
 {
@@ -55,15 +56,15 @@ void print();
 void extrapolation(Index newI, Index newJ, Index oldI, Index oldJ);
 /*********************declear the global variable &funcs *****************/
 MeshPoint mesh;
-ScalarField  volume, S1,S2,S3,S4; //面积, 逆时针顺序, 依次为下右上左
-VectorField  N1,N2,N3,N4;       //面法向单位矢量
+ScalarField  volume, Sdown,Sright,Sup,Sleft; //面积, 逆时针顺序, 依次为下右上左
+VectorField  Ndown,Nright,Nup,Nleft;       //面法向单位矢量
 double nx,ny;
 
 void genMesh();
 void printMesh();
 void cellGeometry(); 
 
-Field Fc1,Fc2,Fc3,Fc4;//右侧和上侧的对流通量的大小, 向外为正, 方向由N1~N4给定
+Field Fcdown,Fcright,Fcup,Fcleft;//右侧和上侧的对流通量的大小, 向外为正, 方向由N1~N4给定
 Field Q;//Q用于存储守恒变量
 Field Residual; //单元格内的残差
 
@@ -72,13 +73,14 @@ void iteration();
 double LTS();
 
 unsigned i, j,k, step;
-ScalarField rho, u, v,  p, H;
-double c; 
+ScalarField rho, u, v,  pre, H;
+double sound; 
 
 void roeFlux();//roe格式求解通量,注意通量要比单元格数量多1
-Vector maxR;
+Vector maxR  ;
 
 FILE* fpDe;
+double dtGlobal;
 
 /********************************Mesh**************************************/
 //虚网格的几何参数和临近实际网格一致, 但是不需要生成网格点, 为了和单元格编号一一对应,也从1开始
@@ -87,20 +89,19 @@ void genMesh()//生成网格点,注意点要比单元格数量分别多一层
 {
     const double dx=1.0/maxI;
     double dy=0.3/maxJ;//后面会变
-    for(int i=cellBegin; i<=block1; i++)
-    {
-        for(int j=cellBegin; j<=maxJ+1; j++)
+    for(int i=cellBegin-1; i<=block1; i++)
+        for(int j=cellBegin-1; j<=maxJ+2; j++)
         {
             mesh[i][j].x=(i-1)*dx;//x=(i-1)*dx
             mesh[i][j].y=(j-1)*dy;//y=(j-1)*dy下同
         }
-    }
+    
     
     for(int i=block1+1; i<=block1+block2; i++)
     {
         double h=0.25*(i-1)*dx-0.05;
         dy=(0.3-h)/maxJ;
-        for(int j=cellBegin;j<=maxJ+1; j++)
+        for(int j=cellBegin-1;j<=maxJ+2; j++)
         {
             mesh[i][j].x=(i-1)*dx;
             mesh[i][j].y=h+(j-1)*dy;
@@ -108,9 +109,9 @@ void genMesh()//生成网格点,注意点要比单元格数量分别多一层
     }
 
     dy=(0.3-0.05)/maxJ;
-    for(int i=block1+block2+1; i<=maxI+1; i++)
+    for(int i=block1+block2+1; i<=maxI+2; i++)
     {
-        for(int j=cellBegin;j<=maxJ+1; j++)
+        for(int j=cellBegin-1;j<=maxJ+2; j++)
         {
             mesh[i][j].x=(i-1)*dx;
             mesh[i][j].y=0.05+(j-1)*dy;
@@ -123,8 +124,8 @@ void cellGeometry()
     double x1,x2,x3,x4, y1,y2,y3,y4;
     //从左下开始逆时针编号,左下点代表1,右下2,右上3,左上4
     //左下点代表本单元格坐标,此处ij代表点的编号
-    for(unsigned i=cellBegin; i<=cellIEnd; i++)//注意范围
-        for(unsigned j=cellBegin; j<=cellJEnd; j++) 
+    for(unsigned i=cellBegin-1; i<=cellIEnd+1; i++)//注意范围
+        for(unsigned j=cellBegin-1; j<=cellJEnd+1; j++) 
         {
             x1 = mesh[i][j].x;
             x2 = mesh[i + 1][j].x;
@@ -136,23 +137,23 @@ void cellGeometry()
             y3 = mesh[i + 1][j + 1].y;
             y4 = mesh[i][j + 1].y;
 
-            S1[i][j] = sqrt(SQ(x1 - x2) + SQ(y1 - y2)); //下侧面积S1
-            S2[i][j] = sqrt(SQ(x2 - x3) + SQ(y2 - y3)); //右侧面积S2
-            S3[i][j] = sqrt(SQ(x3 - x4) + SQ(y3 - y4)); //上侧面积S3
-            S4[i][j] = sqrt(SQ(x4 - x1) + SQ(y4 - y1)); //左侧面积S4
+            Sdown[i][j] = sqrt(SQ(x1 - x2) + SQ(y1 - y2)); //下侧面积S1
+            Sright[i][j] = sqrt(SQ(x2 - x3) + SQ(y2 - y3)); //右侧面积S2
+            Sup[i][j] = sqrt(SQ(x3 - x4) + SQ(y3 - y4)); //上侧面积S3
+            Sleft[i][j] = sqrt(SQ(x4 - x1) + SQ(y4 - y1)); //左侧面积S4
 
-            //面法向单位矢量, 实际上N1.x=sin(theta), N1.y=cos(theta), 再带上方向
-            N1[i][j].x = (y2 - y1) / S1[i][j];
-            N1[i][j].y = (x1 - x2) / S1[i][j];
+            //面法向单位矢量, 实际上N1.x=sin(theta), Ndown.y=cos(theta), 再带上方向
+            Ndown[i][j].x = (y2 - y1) / Sdown[i][j];
+            Ndown[i][j].y = (x1 - x2) / Sdown[i][j];
 
-            N2[i][j].x = (y3 - y2) / S2[i][j];
-            N2[i][j].y = (x2 - x3) / S2[i][j];
+            Nright[i][j].x = (y3 - y2) / Sright[i][j];
+            Nright[i][j].y = (x2 - x3) / Sright[i][j];
 
-            N3[i][j].x = (y4 - y3) / S3[i][j];
-            N3[i][j].y = (x3 - x4) / S3[i][j];
+            Nup[i][j].x = (y4 - y3) / Sup[i][j];
+            Nup[i][j].y = (x3 - x4) / Sup[i][j];
 
-            N4[i][j].x = (y1 - y4) / S4[i][j];
-            N4[i][j].y = (x4 - x1) / S4[i][j];
+            Nleft[i][j].x = (y1 - y4) / Sleft[i][j];
+            Nleft[i][j].y = (x4 - x1) / Sleft[i][j];
             
             //计算单元体体积, 厚度取为1
             volume[i][j] = 0.5 * ((x1 - x3) * (y2 - y4) + (x4 - x2) * (y1 - y3));
@@ -170,17 +171,17 @@ double LTS()
     double dtLocal;
     double lambdaI, lambdaJ, SI, SJ;
     XY NI, NJ;
-    NI.x = 0.5 * (N3[i][j].x - N1[i][j].x);
-    NI.y = 0.5 * (N3[i][j].y - N1[i][j].y);
+    NI.x = 0.5 * (Nup[i][j].x - Ndown[i][j].x);
+    NI.y = 0.5 * (Nup[i][j].y - Ndown[i][j].y);
 
-    NJ.x = 0.5 * (N2[i][j].x - N4[i][j].x);
-    NJ.y = 0.5 * (N2[i][j].y - N4[i][j].y);
+    NJ.x = 0.5 * (Nright[i][j].x - Nleft[i][j].x);
+    NJ.y = 0.5 * (Nright[i][j].y - Nleft[i][j].y);
 
-    SI = 0.5 * (S1[i][j] + S3[i][j]);
-    SJ = 0.5 * (S2[i][j] + S4[i][j]);
+    SI = 0.5 * (Sdown[i][j] + Sup[i][j]);
+    SJ = 0.5 * (Sright[i][j] + Sleft[i][j]);
 
-    lambdaI = (u[i][j] * NI.x + v[i][j] * NI.y)+ c;
-    lambdaJ = (u[i][j] * NJ.x + v[i][j] * NJ.y)+ c;
+    lambdaI = (u[i][j] * NI.x + v[i][j] * NI.y)+ sound;
+    lambdaJ = (u[i][j] * NJ.x + v[i][j] * NJ.y)+ sound;
 
     dtLocal = CFL * volume[i][j] / (lambdaI * SI + lambdaJ * SJ);
 
@@ -194,13 +195,13 @@ void init1()
 {
     //初始全部给1.8Ma, 攻角为0, 压力给大气压101325, 静温300K, 其余推出如下:
     //声速c=sqrt(1.4*287*300)=347.1887
-    //速度u=624.9397, v=0, 密度rho=p/RT=1.176829
-    //单位体积总能E=p/(GAMMA-1)+0.5*rho*(u^2+v^2)
+    //速度u=624.9397, v=0, 密度rho=pre/RT=1.176829
+    //单位体积总能E=pre/(GAMMA-1)+0.5*rho*(u^2+v^2)
     for(unsigned i=cellBegin-1; i<=cellIEnd+2; i++)//包括虚网格!
     {
         for(unsigned j=cellBegin-1; j<=cellJEnd+2; j++)
         {
-            p[i][j]=101325;
+            pre[i][j]=101325;
             u[i][j]=624.9397;
             v[i][j]=0;
             rho[i][j]=1.176829;
@@ -220,62 +221,56 @@ void init1()
 void BC()
 {
     double pw;
-	//上边
+	//上边, 赋予给最上层虚网格的下通量
     const unsigned j=cellJEnd;
     for(unsigned i=cellBegin; i<=cellIEnd; i++)
     {
-        //pw=0.5*(3*p[i][j]-p[i][j-1]);//壁面的压力用两点外推
-        pw=p[i][j];
-        nx=N3[i][j].x; ny=N3[i][j].y;
-
-        Fc1[i][j+1][0]=0;       
-        Fc1[i][j+1][1]=pw*nx;
-        Fc1[i][j+1][2]=pw*ny;
-        Fc1[i][j+1][3]=0;
+        //pw=0.5*(3*pre[i][j]-pre[i][j-1]);//壁面的压力用两点外推
+        Fcdown[i][j+1][0]=0;       
+        Fcdown[i][j+1][1]=pre[i][j]*Nup[i][j].x;
+        Fcdown[i][j+1][2]=pre[i][j]*Nup[i][j].y;
+        Fcdown[i][j+1][3]=0;
 	}
-	//下边
+	//下边, 给最下层实际网格的下边, 向下外推一层用于插值模板
     for (unsigned i = cellBegin; i <= cellIEnd; i++)
     {
-        nx=N1[i][1].x; ny=N1[i][1].y;
-        //pw = 0.5 * (3 * p[i][j] - p[i][j+1]); //壁面的压力用两点外推
-        pw=p[i][1];
-        
-        Fc1[i][1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
-        Fc1[i][1][1] = pw*nx;
-        Fc1[i][1][2] = pw*ny;
-        Fc1[i][1][3] = 0;
-
-      rho[i][0] = rho[i][1];
-        u[i][0] =   u[i][1];
-        v[i][0] =   v[i][1];
-        p[i][0] =   p[i][1];
-        H[i][0] =   H[i][1];
+        //pw = 0.5 * (3 * pre[i][j] - pre[i][j+1]); //
+        Fcdown[i][1][0] = 0;     //注意,虚网格nx ny使用相邻网格的值
+        Fcdown[i][1][1] = pre[i][1]*Ndown[i][1].x;
+        Fcdown[i][1][2] = pre[i][1]*Ndown[i][1].y;
+        Fcdown[i][1][3] = 0;
     }
-	//左边
+	//左边, 最左层实际网格的通量给定,
     for(unsigned j=cellBegin; j<=cellJEnd; j++)
     {
-        //这些流动变量值是虚网格,仅仅用于插值的模板
-        p[0][j] = p0;
-        u[0][j] = u0;
-        v[0][j] = v0;
-      rho[0][j] = rho0;
-        H[0][j] = H0; 
+      pre[1][j] = p0;
+        u[1][j] = u0;
+        v[1][j] = v0;
+      rho[1][j] = rho0;
+        H[1][j] = H0; 
 
-        //Fc4[1][j]才是真正的边界
         const double nx=1, ny=0;
-        const double Vcv0=u0;
-        Fc4[1][j][0]=rho0*Vcv0;
-        Fc4[1][j][1]=rho0*u0*Vcv0+p0*nx;
-        Fc4[1][j][2]=rho0*v0*Vcv0+p0*ny;
-        Fc4[1][j][3]=rho0*H0*Vcv0;
-    }
-    //右边//虚网格给予流动变量,然后根据roe格式算出虚网格的Fc4[maxI+1][j],从而赋予需要的Fc2[maxI][j]
-    for(unsigned j=cellBegin; j<=cellJEnd; j++)
-    {
-        extrapolation(maxI+1,j,maxI,j);
-    }
-      
+        Fcleft[1][j][0]=rho0*Vcv0;
+        Fcleft[1][j][1]=rho0*u0*Vcv0+p0*nx;
+        Fcleft[1][j][2]=rho0*v0*Vcv0+p0*ny;
+        Fcleft[1][j][3]=rho0*H0*Vcv0;
+    }   
+}
 
+void ghostCell()
+{
+    //左侧
+    for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        extrapolation(0,j,1,j);
+    //右侧
+    for(unsigned j=cellBegin; j<=cellJEnd; j++)
+        extrapolation(maxI+1,j,maxI,j);
+    //上侧
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+        extrapolation(i,maxJ+1,i,maxJ);
+    //下侧
+    for(unsigned i=cellBegin; i<=cellIEnd; i++)
+        extrapolation(i,0,i,1);
 }
 
 /**********************iteration********************************/
@@ -283,34 +278,30 @@ void iteration()
 {
     double dt;
     double T;
+    dtGlobal=100;
     for (i = cellBegin; i <= cellIEnd; i++) //i,J为单元编号, 只在此处变动!!
     {
         for (j = cellBegin; j <= cellJEnd; j++)
         {
 
-            c=sqrt(GAMMA*p[i][j]/rho[i][j]);
+            sound=sqrt(GAMMA*pre[i][j]/rho[i][j]);
 
-            dt = LTS(); //当地时间步法求该单元格的时间步
+            dt = 2e-6;//LTS(); //当地时间步法求该单元格的时间步
 
-            //计算残差
             for (unsigned k = 0; k < 4; k++)
             {
-                //R代表离开单元格的通量的矢量和, =右侧+左侧+上侧+下侧
-                //左侧与下侧通量分别由临近单元格右侧与上侧取负号得来
-
-
                 Q[i][j][k] = Q[i][j][k] - dt / volume[i][j] * Residual[i][j][k];
             }
             aeroConvert(i,j);
 
             T=(H[i][j]-0.5*(SQ(u[i][j])+SQ(v[i][j])) )/Cp;
-
             IJcheck(T, i, j);
             IJcheck(rho[i][j] * 1.0, i,j);
-            IJcheck(p[i][j]*1.0,i,j);
+            IJcheck(pre[i][j]*1.0,i,j);
             if(T<0) exit(3);
-            if(p[i][j]<0) exit(1);
+            if(pre[i][j]<0) exit(1);
             if(rho[i][j]<0) exit(2);
+            if(dt<dtGlobal) dtGlobal=dt;
 
         }
     }
@@ -345,18 +336,15 @@ void calARoe()
 
     double Vcv_ = nx * u_ + ny * v_;
 
-    if (H_ - q_2 / 2 < 0)
-    {
-        printf("\nH_-q_2<0!!\n"); //exit(1);
-    }
-
+    IJcheck(H_ - q_2 / 2 ,i,j);
+    
     //计算lambda
     double lambda1 = fabs(Vcv_ - c_);
     double lambda2 = fabs(Vcv_);
     double lambda3 = fabs(Vcv_ + c_);
 
     //熵修正 Harten's entropy correction
-    double delta = 0.05 * c;
+    double delta = 0.05 * sound;
     if (fabs(lambda1) <= delta)
         lambda1 = (lambda1 * lambda1 + delta * delta) / (2 * delta);
     if (fabs(lambda2) <= delta)
@@ -365,7 +353,7 @@ void calARoe()
         lambda3 = (lambda3 * lambda3 + delta * delta) / (2 * delta);
 
     //求出Roe矩阵相关值
-    //lambda123分别是是Vcv-c, Vcv, Vcv+c
+    //lambda123分别是是Vcv-sound, Vcv, Vcv+sound
 
     double delF1[4], delF234[4], delF5[4];
     const double coeff1 = lambda1 * (delP - rho_ * c_ * delVcv) / (2 * c_ * c_); //定义系数以减少计算量
@@ -405,7 +393,7 @@ void calARoe()
 
 void splitI()
 {
-	pL = p[i - 1][j], pR = p[i][j];
+	pL = pre[i - 1][j], pR = pre[i][j];
 	rhoL = rho[i - 1][j], rhoR = rho[i][j];
 	uL = u[i - 1][j], uR = u[i][j];
 	vL = v[i - 1][j], vR = v[i][j];
@@ -414,7 +402,7 @@ void splitI()
 
 void splitJ()
 {
-	pL = p[i][j - 1], pR = p[i][j];
+	pL = pre[i][j - 1], pR = pre[i][j];
 	rhoL = rho[i][j - 1], rhoR = rho[i][j];
 	uL = u[i][j - 1], uR = u[i][j];
 	vL = v[i][j - 1], vR = v[i][j];
@@ -426,30 +414,49 @@ void roeFlux()
     for (unsigned k = 0; k <= 3; k++)
         maxR[k] = 0;
 
-//xin
-    for( i=1;i<=maxI+1;i++)   //注意范围,计算最右侧虚网格
+    //左侧通量
+    for( i=2;i<=maxI+1;i++)   //注意范围
         for( j=1;j<=maxJ;j++)
 		{   
-			c = sqrt(GAMMA*p[i][j]/rho[i][j]);
-            nx = -N4[i][j].x, ny = -N4[i][j].y;
+			sound = sqrt(GAMMA*pre[i][j]/rho[i][j]);
+            nx = -Nleft[i][j].x, ny = -Nleft[i][j].y;
             splitI();
 			calARoe();
 			for (unsigned k = 0; k <= 3; k++)
-				Fc4[i][j][k] = S4[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
-            nx = -N1[i][j].x, ny = -N1[i][j].y;
+				Fcleft[i][j][k] = Sleft[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;
+        }
+    //下侧通量
+    for( i=1;i<=maxI;i++)   //注意范围
+        for( j=2;j<=maxJ;j++)
+        {
+            nx = -Ndown[i][j].x, ny = -Ndown[i][j].y;
             splitJ();
 			calARoe();
 			for (unsigned k = 0; k <= 3; k++)
-				Fc1[i][j][k] = S1[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;	
+				Fcdown[i][j][k] = Sdown[i][j] * (FL[k] + FR[k] - AARoe[k]) / 2;	
 		}
-
+    //上侧通量
     for ( i = 1; i <= maxI ; i++)    //注意范围
         for ( j = 1; j <= maxJ-1 ; j++)
             for ( unsigned k = 0; k < 4; k++)
+                Fcup[i][j][k]   =Fcdown[i][j+1][k];
+    //右侧通量
+    for ( i = 1; i <= maxI ; i++)    //注意范围
+        for ( j = 1; j <= maxJ ; j++)
+            for ( unsigned k = 0; k < 4; k++)
+                Fcright[i][j][k] =Fcleft[i+1][j][k];
+}
+
+
+
+//通量和, 即残差
+void sumFlux()
+{
+    for ( i = 1; i <= maxI ; i++)    //注意范围
+        for ( j = 1; j <= maxJ ; j++)
+            for ( unsigned k = 0; k < 4; k++)
             {   
-                Fc2[i][j][k] = Fc4[i + 1][j][k];
-                Fc3[i][j][k] = Fc1[i][j + 1][k];
-                Residual[i][j][k] = -Fc1[i][j][k] + Fc2[i][j][k] - Fc4[i][j][k] + Fc3[i][j][k];
+                Residual[i][j][k] = Fcup[i][j][k] - Fcdown[i][j][k] + Fcright[i][j][k] - Fcleft[i][j][k] ;
                 if (Residual[i][j][k] > maxR[k])
                     maxR[k] = Residual[i][j][0];
             }
@@ -457,14 +464,14 @@ void roeFlux()
   
  
 /***************************utility  **************************/
-//将Q转化为rho u v p H 
+//将Q转化为rho u v pre H 
 void aeroConvert(Index i, Index j)
 {
     rho[i][j] = Q[i][j][0];
     u[i][j] = Q[i][j][1] / rho[i][j];
     v[i][j] = Q[i][j][2] / rho[i][j];
-    p[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
-    H[i][j] = (Q[i][j][3] + p[i][j]) / rho[i][j];  
+    pre[i][j] = (GAMMA - 1) * (Q[i][j][3] - 0.5*rho[i][j] * ( SQ(u[i][j]) + SQ(v[i][j]) ) );
+    H[i][j] = (Q[i][j][3] + pre[i][j]) / rho[i][j];  
 }
 
 void extrapolation(Index newI, Index newJ, Index oldI, Index oldJ)
@@ -472,7 +479,7 @@ void extrapolation(Index newI, Index newJ, Index oldI, Index oldJ)
   rho[newI][newJ] =rho[oldI][oldJ];
     u[newI][newJ] =  u[oldI][oldJ];
     v[newI][newJ] =  v[oldI][oldJ];
-    p[newI][newJ] =  p[oldI][oldJ];
+    pre[newI][newJ] =  pre[oldI][oldJ];
     H[newI][newJ] =  H[oldI][oldJ];
 }
 
@@ -494,15 +501,15 @@ void printMesh()
 
     FILE* fpG;
     fpG=fopen("cellGeometry.txt", "w");
-    fprintf(fpG,"i   j   x    y    volume   N2.x   N2.y    N3.x    N3.y   S1   S2   S3   S4\n");
+    fprintf(fpG,"i   j   x    y    volume   Nright.x   Nright.y    Nup.x    Nup.y   Sdown   Sright   Sup   Sleft\n");
     for(unsigned i=cellBegin; i<=cellIEnd; i++)
     {
         for(unsigned j=cellBegin; j<=cellJEnd; j++)
         {
             fprintf(fpG, "%-3d  %-3d  %.3f %.3f %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e \n",
             i, j, mesh[i][j].x, mesh[i][j].y,
-            volume[i][j], N2[i][j].x, N2[i][j].y, N3[i][j].x, N3[i][j].y,
-            S1[i][j], S2[i][j], S3[i][j], S4[i][j] );
+            volume[i][j], Nright[i][j].x, Nright[i][j].y, Nup[i][j].x, Nup[i][j].y,
+            Sdown[i][j], Sright[i][j], Sup[i][j], Sleft[i][j] );
         } 
     }
     fclose(fpG);
@@ -514,15 +521,15 @@ void print()
     double T, Ma;
     fpField=fopen("field.dat", "w");
     fprintf(fpField, "Title=\"Field\"\nVariables=\"x\",\"y\",\"rho\",\
-    \"u\",\"v\",\"p\",\"T\",\"Ma\"\nZone T=\"zone1\" i=%d,j=%d,f=point\n", maxI+1, maxJ+1);
+    \"u\",\"v\",\"pre\",\"T\",\"Ma\"\nZone T=\"zone1\" i=%d,j=%d,f=point\n", maxI+1, maxJ+1);
 	for (j = 1; j <= maxJ+1; j++)
 	{
 		for (i = 1; i <= maxI+1; i++)
 		{
-            T = p[i][j] / (rho[i][j] * 287.06);
-            Ma = sqrt((SQ(u[i][j]) + SQ(v[i][j])) / (GAMMA * p[i][j] / rho[i][j]));
+            T = pre[i][j] / (rho[i][j] * 287.06);
+            Ma = sqrt((SQ(u[i][j]) + SQ(v[i][j])) / (GAMMA * pre[i][j] / rho[i][j]));
             fprintf(fpField, "%.3f %.3f %.4e %.4e %.4e %.4e %.4e %.4e \n",
-                    mesh[i][j].x, mesh[i][j].y, rho[i][j], u[i][j], v[i][j],  p[i][j],
+                    mesh[i][j].x, mesh[i][j].y, rho[i][j], u[i][j], v[i][j],  pre[i][j],
                      T, Ma);
         }
     }
@@ -534,7 +541,7 @@ void print()
 /***************************main  **************************/
 int main()
 {  
-    fpDe=fopen("debug.txt","w");
+    //fpDe=fopen("debug.txt","w");
 
 	cout<<"\nCase 1 for inlet 1.8Ma; 2 for 1.5Ma\n\nCurrent Case: "<<caseNo<<endl;
     genMesh();//生成网格
@@ -543,23 +550,24 @@ int main()
 
     //初始化流场
     init1();
-
     cout<<"\nInitialzation done.\n\n"; 
 
     FILE *fpR;
     fpR=fopen("residual.dat", "w");
     fprintf(fpR,"iter  continuity x-velocity y-velocity Energy\n");
 
-    for (step=1;  step<=10000; step++)
+    for (step=1;  step<=2000; step++)
     {   
-        BC();
         roeFlux();
-        iteration();                  
+        sumFlux();
+        iteration();
+        BC();
+        ghostCell();
 
-        fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e\n",
+        fprintf(fpR, "%-5d %.4e %.4e %.4e %.4e \n",
          step, maxR[0], maxR[1], maxR[2], maxR[3]);
-        printf("%-5d %.4e %.4e %.4e %.4e\n",
-         step, maxR[0], maxR[1], maxR[2], maxR[3]);
+        printf("%-5d %.4e %.4e %.4e %.4e %.4e\n",
+         step, maxR[0], maxR[1], maxR[2], maxR[3],dtGlobal);
     }
     fclose(fpR);
 
@@ -568,14 +576,3 @@ int main()
     return 0;
 }
 
-
-
-/*
-            fprintf(fpDe,"T[%2d][%2d]=%.3e\t", i,j, T);
-            fprintf(fpDe,"c[%2d][%2d]=%.3e\t", i,j, c);
-            fprintf(fpDe,"rho[%2d][%2d]=%.3e\t", i,j, rho[i][j]);
-            fprintf(fpDe,"p[%2d][%2d]=%.3e\t", i,j, p[i][j]);
-            fprintf(fpDe,"u[%2d][%2d]=%.3e\t", i,j, u[i][j]);
-            fprintf(fpDe,"v[%2d][%2d]=%12.3e\t", i,j, v[i][j]);
-            fprintf(fpDe,"H[%2d][%2d]=%.3e\n", i,j, H[i][j]);
-*/

@@ -550,7 +550,7 @@ int main()
     fpR=fopen("residual.dat", "w");
     fprintf(fpR,"iter  continuity x-velocity y-velocity Energy\n");
 
-    for (step=1;  step<=10000; step++)
+    for (step=1;  step<=2000; step++)
     {   
         BC();
         roeFlux();
